@@ -1,0 +1,38 @@
+# Virtual environment
+.venv
+**/.venv
+
+# Environment variables
+.env
+.env.local
+
+# macOS
+**/.DS_Store
+
+# Cache data
+**/__pycache__
+*.pyc
+*.pyo
+*.pyd
+
+# Python
+*.egg-info/
+.eggs/
+dist/
+build/
+*.so
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+logs/
+
+# data
+data
+**/data
