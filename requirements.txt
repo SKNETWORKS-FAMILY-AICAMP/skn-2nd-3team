@@ -6,3 +6,4 @@ scipy>=1.7
 jupyter>=1.0
 ipykernel>=6.0
 scikit-learn>=2.3
+streamlit>=1.17.0
