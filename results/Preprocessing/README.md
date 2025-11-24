@@ -107,12 +107,3 @@ Activity_Index = Total_Trans_Amt × Total_Trans_Ct
 
 이러한 새로운 Feature들은 데이터의 숨겨진 패턴을 강조하여
 전체 모델 성능(Accuracy·Recall·AUC 등)을 크게 향상시키는 효과가 있습니다.
-
-**다른 Feature Engineering 활용법**
-
-- Attrition Binary 생성:
-
-data["Attrition_binary"] = data["Attrition_Flag"].map({
-    "Existing Customer": 0,
-    "Attrited Customer": 1
-})
