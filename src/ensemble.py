@@ -7,7 +7,14 @@ from sklearn.pipeline import Pipeline
 from xgboost import XGBClassifier
 import numpy as np
 
-def train_voting_ensemble(X_train, y_train, preprocessor, rf_weights=1, xgb_weights=2):
+####################################
+def train_voting_ensemble(
+    X_train, 
+    y_train, 
+    preprocessor, 
+    rf_weights=1, 
+    xgb_weights=2
+    ):
     """
     Random Forest와 XGBoost를 결합한 소프트 투표 앙상블 모델을 학습시키는 함수.
 
@@ -57,8 +64,27 @@ def train_voting_ensemble(X_train, y_train, preprocessor, rf_weights=1, xgb_weig
     
     return voting_model
 
+# --- 함수 사용 예시 ---
+# 가정: X_train, y_train, preprocessor 객체가 이미 정의되어 있음
 
-def train_stacking_ensemble(X_train, y_train, preprocessor, cv_folds=5):
+# 앙상블 모델 학습 및 저장
+# 학습된 모델 객체를 trained_ensemble_model 변수에 할당
+trained_ensemble_model = train_voting_ensemble(
+    X_train, 
+    y_train, 
+    preprocessor,
+    rf_weights=1,
+    xgb_weights=2
+)
+########################################
+
+
+def train_stacking_ensemble(
+    X_train, 
+    y_train, 
+    preprocessor, 
+    cv_folds=5
+    ):
     """
     Random Forest와 XGBoost를 기반으로 한 Stacking 앙상블 모델을 학습시키는 함수.
 
