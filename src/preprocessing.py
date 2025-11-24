@@ -29,7 +29,9 @@ def replace_nan_value(df):
 	for col in df.select_dtypes(include='object').columns:
 		df[col] = df[col].fillna(df[col].mode()[0])
 	for col in df.select_dtypes(include=np.number).columns:
-		df[col] = df[col].fillna(df[col].mean())
+		mean_val = df.loc[df[col] != 0, col].mean()  # 0이 아닌 값의 평균
+		df[col] = df[col].replace(0, np.nan)         # 0을 NaN으로 변경
+		df[col] = df[col].fillna(mean_val)
 	df = pd.get_dummies(df, drop_first=True)
 	return df
 
@@ -78,9 +80,27 @@ def preprocess_data(df):
 
     return df
 
+import pandas as pd
+
+def find_numeric_nan_columns(df):
+    """
+    숫자형 컬럼 중 NaN 값을 가진 컬럼과 NaN 개수를 반환합니다.
+    """
+    numeric_cols = df.select_dtypes(include='number').columns
+    nan_info = {}
+    for col in numeric_cols:
+        nan_count = df[col].isna().sum()
+        if nan_count > 0:
+            nan_info[col] = nan_count
+    return nan_info
+
+# 사용 예시
+# nan_columns = find_numeric_nan_columns(df)
+# print(nan_columns)
+
+
 if __name__ == "__main__":
-	df = load_data(filepath = PROJECT_ROOT + f"/data/raw/BankChurners.csv")
+    pass
 
-	df = df.copy()
 
-	df = pd.get_dummies(df, drop_first=True)
+	
