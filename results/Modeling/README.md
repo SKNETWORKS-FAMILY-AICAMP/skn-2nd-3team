@@ -41,9 +41,7 @@
   | 모델 | Grid Search | Random Search | Optuna |
   |---|---|---|---|
   | AUC‑ROC | `0.??` | `0.??` | `0.??` |
-  | F1‑Score | `0.??` | `0.??` | `0.??` |
-  | Recall | `0.??` | `0.??` | `0.??` |
-  | Precision | `0.??` | `0.??` | `0.??` |
+  | Accuracy | `0.??` | `0.??` | `0.??` |
 
 ### (3) 최종 모델과 최종 평가 지표에 대해 기술
 
@@ -58,6 +56,7 @@
 - **평가 지표**
 
   - **AUC‑ROC**: `0.??` (전체 평균)
-  - **F1‑Score**: `0.??` (양성 클래스 기준)
-  - **Recall**: `0.??` (양성 클래스 재현율)
-  - **Precision**: `0.??`
+  - **Accuracy**: `0.??`
+  - 이렇게 나눈 이유?
+    Accuracy는 클래스 불균형 취약점이 있어 AUC‑ROC도 같이 사용
+    AUC-ROC란 False Positive Rate(FPR)과 True Positive Rate(TPR)를

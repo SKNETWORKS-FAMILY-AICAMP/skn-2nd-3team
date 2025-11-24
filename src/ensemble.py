@@ -1,4 +1,4 @@
-from sklearn.metrics import accuracy_score, roc_auc_score, classification_report
+from sklearn.metrics import accuracy_score, roc_auc_score, classification_report, f1_score, recall_score, precision_score
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import StackingClassifier
@@ -11,7 +11,6 @@ import numpy as np
 def train_voting_ensemble(
     X_train, 
     y_train, 
-    preprocessor, 
     rf_weights=1, 
     xgb_weights=2
     ):
@@ -64,25 +63,12 @@ def train_voting_ensemble(
     
     return voting_model
 
-# --- 함수 사용 예시 ---
-# 가정: X_train, y_train, preprocessor 객체가 이미 정의되어 있음
-
-# 앙상블 모델 학습 및 저장
-# 학습된 모델 객체를 trained_ensemble_model 변수에 할당
-trained_ensemble_model = train_voting_ensemble(
-    X_train, 
-    y_train, 
-    preprocessor,
-    rf_weights=1,
-    xgb_weights=2
-)
 ########################################
 
 
 def train_stacking_ensemble(
     X_train, 
     y_train, 
-    preprocessor, 
     cv_folds=5
     ):
     """
@@ -136,25 +122,31 @@ def train_stacking_ensemble(
 
 
 def train_logistic_regression(
-	X_train, 
-	y_train
-	):
-	"""로지스틱 회귀 모델 학습"""
-	model = LogisticRegression(max_iter=1000, random_state=42)
-	model.fit(X_train, y_train)
-	return model
+    X_train,
+    y_train,
+):
+    """로지스틱 회귀 모델 학습"""
+    model = LogisticRegression(max_iter=1000, random_state=42)
+    model.fit(X_train, y_train)
+    return model
 
 def evaluate_model(
-	model, 
-	X_test, 
-	y_test
-	):
-	"""모델 예측 및 평가 결과 출력"""
-	y_pred = model.predict(X_test)
-	y_proba = model.predict_proba(X_test)[:, 1]
-	acc = accuracy_score(y_test, y_pred)
-	roc = roc_auc_score(y_test, y_proba)
-	print(f"정확도: {acc:.4f}")
-	print(f"ROC-AUC: {roc:.4f}")
-	print("\n분류 리포트:")
-	print(classification_report(y_test, y_pred))
+    model,
+    X_test,
+    y_test,
+):
+    """모델 예측 및 평가 결과 출력"""
+    y_pred = model.predict(X_test)
+    y_proba = model.predict_proba(X_test)[:, 1]
+    acc = accuracy_score(y_test, y_pred)
+    roc = roc_auc_score(y_test, y_proba)
+    f1 = f1_score(y_test, y_pred)
+    recall = recall_score(y_test, y_pred)
+    precision = precision_score(y_test, y_pred)
+    print(f"정확도: {acc:.4f}")
+    print(f"ROC-AUC: {roc:.4f}")
+    print(f"f1-score: {f1:.4f}")
+    print(f"recall: {recall:.4f}")
+    print(f"precision: {precision:.4f}")
+    print("\n분류 리포트:")
+    print(classification_report(y_test, y_pred))
