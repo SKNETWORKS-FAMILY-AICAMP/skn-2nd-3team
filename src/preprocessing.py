@@ -1,7 +1,10 @@
 import pandas as pd
 import numpy as np
+import os
 
-def load_data(filepath="data/raw/BankChurners.csv"):
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+def load_data(filepath = PROJECT_ROOT + f"/data/raw/BankChurners.csv"):
 	"""CSV 파일을 불러와 데이터프레임 반환"""
 	df = pd.read_csv(filepath)
 	return df
@@ -23,3 +26,15 @@ def preprocess_data(df):
 		df[col] = df[col].fillna(df[col].mean())
 	df = pd.get_dummies(df, drop_first=True)
 	return df
+
+if __name__ == "__main__":
+	df = load_data()
+
+	df["Activity_Index"] = df["Total_Trans_Amt"] * df["Total_Trans_Ct"]
+	df["Amt_per_Contact"] = df["Total_Trans_Amt"] / (df["Contacts_Count_12_mon"] + 1)
+	df["Risk_Score"] = (
+		df["Avg_Utilization_Ratio"] * 0.6 +
+		df["Total_Revolving_Bal"] * 0.4
+	) 
+
+	df = pd.get_dummies(df, drop_first=True)
