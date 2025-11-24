@@ -16,3 +16,13 @@ if __name__ == '__main__':
     
     model = train_logistic_regression(X_train, y_train)
     evaluate_model(model, X_test, y_test)
+
+    # 모델 저장
+    import joblib
+    import os
+    
+    save_dir = 'results/Final_Model'
+    os.makedirs(save_dir, exist_ok=True)
+    model_path = os.path.join(save_dir, 'final_model.joblib')
+    joblib.dump(model, model_path)
+    print(f"모델이 저장되었습니다: {model_path}")
