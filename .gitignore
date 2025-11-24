@@ -37,7 +37,7 @@ var/
 .vscode/
 
 # MacOS
-.DS_Store
+**/.DS_Store
 
 # Data files
 data/raw/
