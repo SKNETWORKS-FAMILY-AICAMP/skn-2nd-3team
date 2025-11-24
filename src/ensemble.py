@@ -1,5 +1,148 @@
-from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, roc_auc_score, classification_report
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import StackingClassifier
+from sklearn.ensemble import VotingClassifier
+from sklearn.pipeline import Pipeline
+from xgboost import XGBClassifier
+import numpy as np
+
+####################################
+def train_voting_ensemble(X_train, y_train, preprocessor, rf_weights=1, xgb_weights=2):
+    """
+    Random Forest와 XGBoost를 결합한 소프트 투표 앙상블 모델을 학습시키는 함수.
+
+    Args:
+        X_train (pd.DataFrame): 훈련용 특징 데이터.
+        y_train (pd.Series): 훈련용 타겟 변수.
+        preprocessor (ColumnTransformer): 전처리 파이프라인 객체.
+        rf_weights (int): Random Forest 모델에 할당할 투표 가중치.
+        xgb_weights (int): XGBoost 모델에 할당할 투표 가중치.
+
+    Returns:
+        Pipeline: 학습이 완료된 앙상블 파이프라인 객체 (voting_model).
+    """
+    
+    scale_pos_weight_value = sum(y_train == 0) / sum(y_train == 1)
+
+    # 2. 개별 모델 정의 (최적 파라미터 적용)
+    best_rf = RandomForestClassifier(
+        n_estimators=200,
+        max_depth=10,
+        min_samples_split=5,
+        class_weight='balanced',
+        random_state=42
+    )
+
+    best_xgb = XGBClassifier(
+        n_estimators=200,
+        learning_rate=0.05,
+        max_depth=5,
+        subsample=0.9,
+        colsample_bytree=0.9,
+        scale_pos_weight=scale_pos_weight_value,
+        eval_metric="logloss",
+        random_state=42
+    )
+
+    # 3. 앙상블 파이프라인 구축
+    voting_model = Pipeline([
+        ('preprocess', preprocessor),
+        ('ensemble', VotingClassifier(
+            estimators=[
+                ('rf', best_rf),
+                ('xgb', best_xgb)
+            ],
+            voting='soft',   
+            weights=[rf_weights, xgb_weights], 
+            n_jobs=-1 # 앙상블 학습 병렬 처리
+        ))
+    ])
+
+    # 4. 모델 학습
+    voting_model.fit(X_train, y_train)
+    
+    return voting_model
+
+# --- 함수 사용 예시 ---
+# 가정: X_train, y_train, preprocessor 객체가 이미 정의되어 있음
+
+# 앙상블 모델 학습 및 저장
+# 학습된 모델 객체를 trained_ensemble_model 변수에 할당
+trained_ensemble_model = train_voting_ensemble(
+    X_train, 
+    y_train, 
+    preprocessor,
+    rf_weights=1,
+    xgb_weights=2
+)
+########################################
+
+
+def train_stacking_ensemble(X_train, y_train, preprocessor, cv_folds=5):
+    """
+    Random Forest와 XGBoost를 기반으로 한 Stacking 앙상블 모델을 학습시키는 함수.
+
+    Args:
+        X_train (pd.DataFrame): 훈련용 특징 데이터.
+        y_train (pd.Series): 훈련용 타겟 변수.
+        preprocessor (ColumnTransformer): 전처리 파이프라인 객체.
+        cv_folds (int): StackingClassifier 내부 교차 검증에 사용할 폴드 수.
+
+    Returns:
+        Pipeline: 학습이 완료된 Stacking 파이프라인 객체 (stacking_model).
+    """
+    
+    scale_pos_weight_value = sum(y_train == 0) / sum(y_train == 1)
+
+    best_rf = RandomForestClassifier(
+        n_estimators=200,
+        max_depth=10,
+        min_samples_split=5,
+        class_weight='balanced',
+        random_state=42
+    )
+
+    best_xgb = XGBClassifier(
+        n_estimators=200,
+        learning_rate=0.05,
+        max_depth=5,
+        subsample=0.9,
+        colsample_bytree=0.9,
+        scale_pos_weight=scale_pos_weight_value,
+        eval_metric="logloss",
+        random_state=42
+    )
+
+    stacking_model = Pipeline([
+        ('preprocess', preprocessor), 
+        ('stack', StackingClassifier( 
+            estimators=[
+                ('rf', best_rf),
+                ('xgb', best_xgb)
+            ],
+            final_estimator=LogisticRegression(max_iter=1000), 
+            stack_method='predict_proba', # 베이스 모델의 확률을 최종 모델의 특징으로 사용
+            cv=cv_folds,
+            n_jobs=-1
+        ))
+    ])
+
+    stacking_model.fit(X_train, y_train)
+    
+    return stacking_model
+
+# --- 함수 사용 예시 ---
+# 가정: X_train, y_train, preprocessor 객체가 이미 정의되어 있음
+
+# 앙상블 모델 학습 및 저장
+trained_stacking_model = train_stacking_ensemble(
+    X_train, 
+    y_train, 
+    preprocessor,
+    cv_folds=5 # Stacking 내부 교차 검증 횟수
+)
+#############################################################
 
 def train_logistic_regression(
 	X_train, 
