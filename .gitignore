@@ -1,38 +1,47 @@
-# Virtual environment
-.venv
-**/.venv
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
 
-# Environment variables
-.env
-.env.local
-
-# macOS
-**/.DS_Store
-
-# Cache data
-**/__pycache__
-*.pyc
-*.pyo
-*.pyd
-
-# Python
-*.egg-info/
-.eggs/
-dist/
-build/
+# C extensions
 *.so
 
-# IDE
+# Distribution / packaging
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.env
+.venv
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints
+
+# VS Code
 .vscode/
-.idea/
-*.swp
-*.swo
-*~
+
+# MacOS
+.DS_Store
+
+# Data files
+data/raw/
+data/processed/
 
 # Logs
 *.log
-logs/
-
-# data
-data
-**/data
