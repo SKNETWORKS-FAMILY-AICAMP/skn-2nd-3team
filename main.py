@@ -8,9 +8,12 @@ if __name__ == '__main__':
     df = load_data()
     df = preprocess_data(df) # preprocessing.py
 
+    features = df.columns.drop('Attrition_Binary')
+    target_col = 'Attrition_Binary'
+
 # ========================= Train Test Split =========================
     # X_train, X_test, y_train, y_test = split_train_test( # cv.py
-    #     df, target_col='Attrition_Binary',
+    #     df, target_col,
     #     test_size=0.2, 
     #     random_state=42
     #     )
@@ -19,8 +22,6 @@ if __name__ == '__main__':
     # folds = kfold_split(df, n_splits=5, shuffle=True, random_state=42)
 
 # ========================= Stratify CV Fold =========================    
-    features = df.columns.drop('Attrition_Binary')
-    target_col = 'Attrition_Binary'
     folds = stratified_kfold_split(df, target_col=target_col, n_splits=5, shuffle=True, random_state=42)
 
     for i, (train_idx, test_idx) in enumerate(folds):
