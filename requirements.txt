@@ -8,3 +8,4 @@ ipykernel>=6.0
 scikit-learn>=2.3
 streamlit>=1.17.0
 xgboost>=3.1.2
+optuna>=4.6
