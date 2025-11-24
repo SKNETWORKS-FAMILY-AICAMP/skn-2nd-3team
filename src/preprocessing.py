@@ -1,12 +1,16 @@
 import pandas as pd
 import numpy as np
 import os
+import sys
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(PROJECT_ROOT)
+csv_file_path = sys.path[-1] + r"\data\raw\BankChurners.csv"
 
-def load_data(filepath = PROJECT_ROOT + f"/data/raw/BankChurners.csv"):
+
+def load_data(csv_file_path = csv_file_path):
 	"""CSV 파일을 불러와 데이터프레임 반환"""
-	df = pd.read_csv(filepath)
+	df = pd.read_csv(csv_file_path)
 	return df
 
 def drop_column(df):
@@ -20,19 +24,32 @@ def drop_column(df):
 		"Naive_Bayes_Classifier_Attrition_Flag_Card_Category_Contacts_Count_12_mon_Dependent_count_Education_Level_Months_Inactive_12_mon_1"
 	] if col in df.columns]
 	df = df.drop(columns=drop_cols)
-
 	return df
 
-def replace_nan_value(df):
+def replace_nan_value(df, target_col='Attrition_Binary'):
 	"""Nan 값을 대체합니다. (범주형 칼럼: 최빈값, 숫자형 칼럼: 평균값)"""
+	categoriacal_cols = []
+	numerical_cols = []
 	df = df.copy()
+
 	for col in df.select_dtypes(include='object').columns:
+		if col not in categoriacal_cols:
+			categoriacal_cols.append(col)
 		df[col] = df[col].fillna(df[col].mode()[0])
 	for col in df.select_dtypes(include=np.number).columns:
+		if col not in numerical_cols:
+			numerical_cols.append(col)
+		if col == target_col:
+			# 타깃 컬럼은 원래 분포를 유지해야 하므로 결측만 최빈값으로 처리
+			df[col] = df[col].fillna(df[col].mode()[0])
+			continue
+		
 		mean_val = df.loc[df[col] != 0, col].mean()  # 0이 아닌 값의 평균
 		df[col] = df[col].replace(0, np.nan)         # 0을 NaN으로 변경
 		df[col] = df[col].fillna(mean_val)
 	df = pd.get_dummies(df, drop_first=True)
+	# print(f"categoriacal_cols: {categoriacal_cols}")
+	# print(f"numerical_cols: {numerical_cols}")
 	return df
 
 def add_feature_engineering(df: pd.DataFrame) -> pd.DataFrame:
@@ -70,7 +87,7 @@ def preprocess_data(df):
     df = df.copy()
 
 	# 전처리 파이프라인
-	# 1.필요없는 칼럼 드랍
+	# 1. 필요없는 칼럼 드랍
 	# 2. nan값 채우기
 	# 3. engineered feature 추가
 	
@@ -82,25 +99,14 @@ def preprocess_data(df):
 
 import pandas as pd
 
-def find_numeric_nan_columns(df):
-    """
-    숫자형 컬럼 중 NaN 값을 가진 컬럼과 NaN 개수를 반환합니다.
-    """
-    numeric_cols = df.select_dtypes(include='number').columns
-    nan_info = {}
-    for col in numeric_cols:
-        nan_count = df[col].isna().sum()
-        if nan_count > 0:
-            nan_info[col] = nan_count
-    return nan_info
-
 # 사용 예시
-# nan_columns = find_numeric_nan_columns(df)
-# print(nan_columns)
-
+# df = preprocess_data(df)
 
 if __name__ == "__main__":
-    pass
+	df =load_data()
+	df = preprocess_data(df)
+	# print(df['Attrition_Binary'].value_counts())
+	pass
 
 
 	
