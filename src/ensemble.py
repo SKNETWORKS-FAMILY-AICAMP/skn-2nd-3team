@@ -224,3 +224,158 @@ def train_logistic_regression(X_train, y_train):
     model = models['LogisticRegression']
     model.fit(X_train, y_train)
     return model
+
+
+def create_voting_ensemble_pipeline(preprocessor, rf_params=None, xgb_params=None, weights=[1, 2], voting='soft'):
+    """
+    Pipeline 기반 Voting Ensemble 생성 (노트북 기반)
+    
+    Args:
+        preprocessor: 전처리 파이프라인
+        rf_params: RandomForest 파라미터 딕셔너리 (None이면 최적 파라미터 사용)
+        xgb_params: XGBoost 파라미터 딕셔너리 (None이면 최적 파라미터 사용)
+        weights: 모델별 가중치
+        voting: 'hard' 또는 'soft'
+        
+    Returns:
+        Voting Ensemble Pipeline
+    """
+    from sklearn.ensemble import RandomForestClassifier, VotingClassifier
+    from sklearn.pipeline import Pipeline
+    
+    try:
+        from xgboost import XGBClassifier
+        XGBOOST_AVAILABLE = True
+    except ImportError:
+        XGBOOST_AVAILABLE = False
+    
+    # RandomForest 파라미터 설정
+    if rf_params is None:
+        rf_params = {
+            'n_estimators': 200,
+            'max_depth': 10,
+            'min_samples_split': 5,
+            'class_weight': 'balanced',
+            'random_state': 42
+        }
+    
+    best_rf = RandomForestClassifier(**rf_params)
+    
+    # XGBoost 파라미터 설정
+    if XGBOOST_AVAILABLE:
+        if xgb_params is None:
+            xgb_params = {
+                'n_estimators': 200,
+                'learning_rate': 0.05,
+                'max_depth': 5,
+                'subsample': 0.9,
+                'colsample_bytree': 0.9,
+                'eval_metric': 'logloss',
+                'random_state': 42
+            }
+        
+        best_xgb = XGBClassifier(**xgb_params)
+        
+        voting_model = Pipeline([
+            ('preprocess', preprocessor),
+            ('ensemble', VotingClassifier(
+                estimators=[
+                    ('rf', best_rf),
+                    ('xgb', best_xgb)
+                ],
+                voting=voting,
+                weights=weights
+            ))
+        ])
+    else:
+        # XGBoost가 없으면 RF만 사용
+        voting_model = Pipeline([
+            ('preprocess', preprocessor),
+            ('ensemble', best_rf)
+        ])
+    
+    return voting_model
+
+
+def create_stacking_ensemble_pipeline(preprocessor, rf_params=None, xgb_params=None, meta_model=None, cv=5):
+    """
+    Pipeline 기반 Stacking Ensemble 생성 (노트북 기반)
+    
+    Args:
+        preprocessor: 전처리 파이프라인
+        rf_params: RandomForest 파라미터 딕셔너리 (None이면 최적 파라미터 사용)
+        xgb_params: XGBoost 파라미터 딕셔너리 (None이면 최적 파라미터 사용)
+        meta_model: Meta-learner (None이면 LogisticRegression 사용)
+        cv: 교차 검증 폴드 수
+        
+    Returns:
+        Stacking Ensemble Pipeline
+    """
+    from sklearn.ensemble import RandomForestClassifier, StackingClassifier
+    from sklearn.linear_model import LogisticRegression
+    from sklearn.pipeline import Pipeline
+    
+    try:
+        from xgboost import XGBClassifier
+        XGBOOST_AVAILABLE = True
+    except ImportError:
+        XGBOOST_AVAILABLE = False
+    
+    # RandomForest 파라미터 설정
+    if rf_params is None:
+        rf_params = {
+            'n_estimators': 200,
+            'max_depth': 10,
+            'min_samples_split': 5,
+            'class_weight': 'balanced',
+            'random_state': 42
+        }
+    
+    best_rf = RandomForestClassifier(**rf_params)
+    
+    # Meta-learner 설정
+    if meta_model is None:
+        meta_model = LogisticRegression(max_iter=1000, random_state=42)
+    
+    if XGBOOST_AVAILABLE:
+        # XGBoost 파라미터 설정
+        if xgb_params is None:
+            xgb_params = {
+                'n_estimators': 200,
+                'learning_rate': 0.05,
+                'max_depth': 5,
+                'subsample': 0.9,
+                'colsample_bytree': 0.9,
+                'eval_metric': 'logloss',
+                'random_state': 42
+            }
+        
+        best_xgb = XGBClassifier(**xgb_params)
+        
+        stacking_model = Pipeline([
+            ('preprocess', preprocessor),
+            ('stack', StackingClassifier(
+                estimators=[
+                    ('rf', best_rf),
+                    ('xgb', best_xgb)
+                ],
+                final_estimator=meta_model,
+                stack_method='predict_proba',
+                cv=cv,
+                n_jobs=-1
+            ))
+        ])
+    else:
+        # XGBoost가 없으면 RF만 사용
+        stacking_model = Pipeline([
+            ('preprocess', preprocessor),
+            ('stack', StackingClassifier(
+                estimators=[('rf', best_rf)],
+                final_estimator=meta_model,
+                stack_method='predict_proba',
+                cv=cv,
+                n_jobs=-1
+            ))
+        ])
+    
+    return stacking_model

@@ -14,6 +14,12 @@ from .ensemble import voting_ensemble, stacking_ensemble, blending_ensemble
 import warnings
 warnings.filterwarnings('ignore')
 
+try:
+    from xgboost import XGBClassifier
+    XGBOOST_AVAILABLE = True
+except ImportError:
+    XGBOOST_AVAILABLE = False
+
 
 def evaluate_single_model(model, X_train, y_train, X_test, y_test, model_name, cv=5):
     """
@@ -360,3 +366,107 @@ def select_best_model(base_results, ensemble_results=None, metric='combined_auc'
     
     return best
 
+
+def grid_search_rf(preprocessor, X_train, y_train, cv=5, scoring='roc_auc', n_jobs=-1, verbose=0):
+    """
+    RandomForest GridSearchCV (노트북 기반)
+    
+    Args:
+        preprocessor: 전처리 파이프라인
+        X_train: 학습 데이터
+        y_train: 학습 타겟
+        cv: 교차 검증 폴드 수
+        scoring: 평가 지표
+        n_jobs: 병렬 처리 수
+        verbose: 출력 상세도
+        
+    Returns:
+        GridSearchCV 객체
+    """
+    from sklearn.ensemble import RandomForestClassifier
+    from sklearn.model_selection import GridSearchCV, StratifiedKFold
+    from sklearn.pipeline import Pipeline
+    
+    rf_model = Pipeline([
+        ('preprocessor', preprocessor),
+        ('rf', RandomForestClassifier(random_state=42))
+    ])
+    
+    rf_params = {
+        'rf__n_estimators': [100, 200, 300],
+        'rf__max_depth': [5, 10, 15, None],
+        'rf__min_samples_split': [2, 5, 10],
+        'rf__class_weight': ['balanced', None]
+    }
+    
+    cv_fold = StratifiedKFold(n_splits=cv, shuffle=True, random_state=42)
+    
+    rf_grid = GridSearchCV(
+        estimator=rf_model,
+        param_grid=rf_params,
+        cv=cv_fold,
+        scoring=scoring,
+        n_jobs=n_jobs,
+        verbose=verbose
+    )
+    
+    rf_grid.fit(X_train, y_train)
+    
+    return rf_grid
+
+
+def grid_search_xgb_smote(preprocessor, X_train, y_train, cv=5, scoring='roc_auc', n_jobs=-1, verbose=0):
+    """
+    XGBoost + SMOTE GridSearchCV (노트북 기반)
+    
+    Args:
+        preprocessor: 전처리 파이프라인
+        X_train: 학습 데이터
+        y_train: 학습 타겟
+        cv: 교차 검증 폴드 수
+        scoring: 평가 지표
+        n_jobs: 병렬 처리 수
+        verbose: 출력 상세도
+        
+    Returns:
+        GridSearchCV 객체
+    """
+    try:
+        from imblearn.over_sampling import SMOTE
+        from imblearn.pipeline import Pipeline as ImbPipeline
+    except ImportError:
+        raise ImportError("imbalanced-learn이 필요합니다. pip install imbalanced-learn")
+    
+    if not XGBOOST_AVAILABLE:
+        raise ImportError("XGBoost가 필요합니다. pip install xgboost")
+    
+    from sklearn.model_selection import GridSearchCV, StratifiedKFold
+    from xgboost import XGBClassifier
+    
+    smote_xgb_model = ImbPipeline([
+        ('preprocessor', preprocessor),
+        ('smote', SMOTE(random_state=42, sampling_strategy=0.8)),
+        ('xgb', XGBClassifier(random_state=42, eval_metric='logloss'))
+    ])
+    
+    xgb_params = {
+        'xgb__n_estimators': [100, 200],
+        'xgb__learning_rate': [0.05, 0.1],
+        'xgb__max_depth': [5, 7],
+        'smote__k_neighbors': [3, 5]
+    }
+    
+    cv_fold = StratifiedKFold(n_splits=cv, shuffle=True, random_state=42)
+    
+    xgb_grid = GridSearchCV(
+        estimator=smote_xgb_model,
+        param_grid=xgb_params,
+        cv=cv_fold,
+        scoring=scoring,
+        n_jobs=n_jobs,
+        verbose=verbose
+    )
+    
+    xgb_grid.fit(X_train, y_train)
+    
+    return xgb_grid

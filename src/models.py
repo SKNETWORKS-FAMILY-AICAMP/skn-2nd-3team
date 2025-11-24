@@ -113,6 +113,42 @@ def get_base_models(random_state=42):
     return models
 
 
+def get_optimized_models(random_state=42):
+    """
+    GridSearch로 찾은 최적 파라미터를 가진 모델들 반환 (노트북 기반)
+    
+    Returns:
+        dict: 모델 이름과 최적화된 모델 객체의 딕셔너리
+    """
+    models = {}
+    
+    # GridSearch 결과 기반 최적 파라미터
+    # RandomForest: {'class_weight': 'balanced', 'max_depth': None, 'min_samples_split': 2, 'n_estimators': 300}
+    models['RandomForest_Optimized'] = RandomForestClassifier(
+        n_estimators=300,
+        max_depth=None,
+        min_samples_split=2,
+        class_weight='balanced',
+        random_state=random_state,
+        n_jobs=-1
+    )
+    
+    # XGBoost 최적 파라미터 (SMOTE 없이 사용할 경우)
+    if XGBOOST_AVAILABLE:
+        models['XGBoost_Optimized'] = XGBClassifier(
+            n_estimators=200,
+            learning_rate=0.1,
+            max_depth=5,
+            subsample=0.9,
+            colsample_bytree=0.9,
+            random_state=random_state,
+            eval_metric='logloss',
+            use_label_encoder=False
+        )
+    
+    return models
+
+
 def get_scaled_models():
     """
     스케일링이 필요한 모델들의 리스트 반환
