@@ -7,7 +7,6 @@ from sklearn.pipeline import Pipeline
 from xgboost import XGBClassifier
 import numpy as np
 
-####################################
 def train_voting_ensemble(X_train, y_train, preprocessor, rf_weights=1, xgb_weights=2):
     """
     Random Forest와 XGBoost를 결합한 소프트 투표 앙상블 모델을 학습시키는 함수.
@@ -25,7 +24,6 @@ def train_voting_ensemble(X_train, y_train, preprocessor, rf_weights=1, xgb_weig
     
     scale_pos_weight_value = sum(y_train == 0) / sum(y_train == 1)
 
-    # 2. 개별 모델 정의 (최적 파라미터 적용)
     best_rf = RandomForestClassifier(
         n_estimators=200,
         max_depth=10,
@@ -45,10 +43,7 @@ def train_voting_ensemble(X_train, y_train, preprocessor, rf_weights=1, xgb_weig
         random_state=42
     )
 
-    # 3. 앙상블 파이프라인 구축
-    voting_model = Pipeline([
-        ('preprocess', preprocessor),
-        ('ensemble', VotingClassifier(
+    voting_model =  VotingClassifier(
             estimators=[
                 ('rf', best_rf),
                 ('xgb', best_xgb)
@@ -56,27 +51,11 @@ def train_voting_ensemble(X_train, y_train, preprocessor, rf_weights=1, xgb_weig
             voting='soft',   
             weights=[rf_weights, xgb_weights], 
             n_jobs=-1 # 앙상블 학습 병렬 처리
-        ))
-    ])
+        )
 
-    # 4. 모델 학습
     voting_model.fit(X_train, y_train)
     
     return voting_model
-
-# --- 함수 사용 예시 ---
-# 가정: X_train, y_train, preprocessor 객체가 이미 정의되어 있음
-
-# 앙상블 모델 학습 및 저장
-# 학습된 모델 객체를 trained_ensemble_model 변수에 할당
-trained_ensemble_model = train_voting_ensemble(
-    X_train, 
-    y_train, 
-    preprocessor,
-    rf_weights=1,
-    xgb_weights=2
-)
-########################################
 
 
 def train_stacking_ensemble(X_train, y_train, preprocessor, cv_folds=5):
@@ -114,9 +93,7 @@ def train_stacking_ensemble(X_train, y_train, preprocessor, cv_folds=5):
         random_state=42
     )
 
-    stacking_model = Pipeline([
-        ('preprocess', preprocessor), 
-        ('stack', StackingClassifier( 
+    stacking_model =  StackingClassifier( 
             estimators=[
                 ('rf', best_rf),
                 ('xgb', best_xgb)
@@ -125,24 +102,12 @@ def train_stacking_ensemble(X_train, y_train, preprocessor, cv_folds=5):
             stack_method='predict_proba', # 베이스 모델의 확률을 최종 모델의 특징으로 사용
             cv=cv_folds,
             n_jobs=-1
-        ))
-    ])
+        )
 
     stacking_model.fit(X_train, y_train)
     
     return stacking_model
 
-# --- 함수 사용 예시 ---
-# 가정: X_train, y_train, preprocessor 객체가 이미 정의되어 있음
-
-# 앙상블 모델 학습 및 저장
-trained_stacking_model = train_stacking_ensemble(
-    X_train, 
-    y_train, 
-    preprocessor,
-    cv_folds=5 # Stacking 내부 교차 검증 횟수
-)
-#############################################################
 
 def train_logistic_regression(
 	X_train, 
