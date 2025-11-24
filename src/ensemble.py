@@ -1,4 +1,4 @@
-from sklearn.metrics import accuracy_score, roc_auc_score, classification_report
+from sklearn.metrics import accuracy_score, roc_auc_score, classification_report, f1_score, recall_score, precision_score
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import StackingClassifier
@@ -8,7 +8,12 @@ from xgboost import XGBClassifier
 import numpy as np
 
 ####################################
-def train_voting_ensemble(X_train, y_train, preprocessor, rf_weights=1, xgb_weights=2):
+def train_voting_ensemble(
+    X_train, 
+    y_train, 
+    rf_weights=1, 
+    xgb_weights=2
+    ):
     """
     Random Forest와 XGBoost를 결합한 소프트 투표 앙상블 모델을 학습시키는 함수.
 
@@ -25,7 +30,6 @@ def train_voting_ensemble(X_train, y_train, preprocessor, rf_weights=1, xgb_weig
     
     scale_pos_weight_value = sum(y_train == 0) / sum(y_train == 1)
 
-    # 2. 개별 모델 정의 (최적 파라미터 적용)
     best_rf = RandomForestClassifier(
         n_estimators=200,
         max_depth=10,
@@ -45,10 +49,7 @@ def train_voting_ensemble(X_train, y_train, preprocessor, rf_weights=1, xgb_weig
         random_state=42
     )
 
-    # 3. 앙상블 파이프라인 구축
-    voting_model = Pipeline([
-        ('preprocess', preprocessor),
-        ('ensemble', VotingClassifier(
+    voting_model =  VotingClassifier(
             estimators=[
                 ('rf', best_rf),
                 ('xgb', best_xgb)
@@ -56,30 +57,20 @@ def train_voting_ensemble(X_train, y_train, preprocessor, rf_weights=1, xgb_weig
             voting='soft',   
             weights=[rf_weights, xgb_weights], 
             n_jobs=-1 # 앙상블 학습 병렬 처리
-        ))
-    ])
+        )
 
-    # 4. 모델 학습
     voting_model.fit(X_train, y_train)
     
     return voting_model
 
-# --- 함수 사용 예시 ---
-# 가정: X_train, y_train, preprocessor 객체가 이미 정의되어 있음
-
-# 앙상블 모델 학습 및 저장
-# 학습된 모델 객체를 trained_ensemble_model 변수에 할당
-trained_ensemble_model = train_voting_ensemble(
-    X_train, 
-    y_train, 
-    preprocessor,
-    rf_weights=1,
-    xgb_weights=2
-)
 ########################################
 
 
-def train_stacking_ensemble(X_train, y_train, preprocessor, cv_folds=5):
+def train_stacking_ensemble(
+    X_train, 
+    y_train, 
+    cv_folds=5
+    ):
     """
     Random Forest와 XGBoost를 기반으로 한 Stacking 앙상블 모델을 학습시키는 함수.
 
@@ -114,9 +105,7 @@ def train_stacking_ensemble(X_train, y_train, preprocessor, cv_folds=5):
         random_state=42
     )
 
-    stacking_model = Pipeline([
-        ('preprocess', preprocessor), 
-        ('stack', StackingClassifier( 
+    stacking_model =  StackingClassifier( 
             estimators=[
                 ('rf', best_rf),
                 ('xgb', best_xgb)
@@ -125,45 +114,39 @@ def train_stacking_ensemble(X_train, y_train, preprocessor, cv_folds=5):
             stack_method='predict_proba', # 베이스 모델의 확률을 최종 모델의 특징으로 사용
             cv=cv_folds,
             n_jobs=-1
-        ))
-    ])
+        )
 
     stacking_model.fit(X_train, y_train)
     
     return stacking_model
 
-# --- 함수 사용 예시 ---
-# 가정: X_train, y_train, preprocessor 객체가 이미 정의되어 있음
-
-# 앙상블 모델 학습 및 저장
-trained_stacking_model = train_stacking_ensemble(
-    X_train, 
-    y_train, 
-    preprocessor,
-    cv_folds=5 # Stacking 내부 교차 검증 횟수
-)
-#############################################################
 
 def train_logistic_regression(
-	X_train, 
-	y_train
-	):
-	"""로지스틱 회귀 모델 학습"""
-	model = LogisticRegression(max_iter=1000, random_state=42)
-	model.fit(X_train, y_train)
-	return model
+    X_train,
+    y_train,
+):
+    """로지스틱 회귀 모델 학습"""
+    model = LogisticRegression(max_iter=1000, random_state=42)
+    model.fit(X_train, y_train)
+    return model
 
 def evaluate_model(
-	model, 
-	X_test, 
-	y_test
-	):
-	"""모델 예측 및 평가 결과 출력"""
-	y_pred = model.predict(X_test)
-	y_proba = model.predict_proba(X_test)[:, 1]
-	acc = accuracy_score(y_test, y_pred)
-	roc = roc_auc_score(y_test, y_proba)
-	print(f"정확도: {acc:.4f}")
-	print(f"ROC-AUC: {roc:.4f}")
-	print("\n분류 리포트:")
-	print(classification_report(y_test, y_pred))
+    model,
+    X_test,
+    y_test,
+):
+    """모델 예측 및 평가 결과 출력"""
+    y_pred = model.predict(X_test)
+    y_proba = model.predict_proba(X_test)[:, 1]
+    acc = accuracy_score(y_test, y_pred)
+    roc = roc_auc_score(y_test, y_proba)
+    f1 = f1_score(y_test, y_pred)
+    recall = recall_score(y_test, y_pred)
+    precision = precision_score(y_test, y_pred)
+    print(f"정확도: {acc:.4f}")
+    print(f"ROC-AUC: {roc:.4f}")
+    print(f"f1-score: {f1:.4f}")
+    print(f"recall: {recall:.4f}")
+    print(f"precision: {precision:.4f}")
+    print("\n분류 리포트:")
+    print(classification_report(y_test, y_pred))

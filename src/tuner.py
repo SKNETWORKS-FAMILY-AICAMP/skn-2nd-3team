@@ -7,7 +7,7 @@ from sklearn.model_selection import GridSearchCV, RandomizedSearchCV, cross_val_
 from sklearn.preprocessing import StandardScaler
 import optuna
 from scipy.stats import loguniform
-
+from .cv import stratified_kfold_split
 
 def _fit_estimator(estimator: Any, X: np.ndarray, y: np.ndarray) -> Any:
     """Fit a sklearn‑compatible estimator and return the fitted model.
@@ -28,7 +28,8 @@ def grid_search_tuner(
     param_grid: Dict[str, Any],
     X: np.ndarray,
     y: np.ndarray,
-    cv: int = 5,
+    cv: Any = 5,
+    groups: np.ndarray | None = None,
     scoring: str | None = None,
     n_jobs: int = -1,
 ) -> Tuple[Any, Dict[str, Any], float]:
@@ -36,10 +37,16 @@ def grid_search_tuner(
 
     Returns the best estimator, its hyper‑parameters and the best CV score.
     """
+    # cv값이 cv 분리하는 함수이면 그 방식으로 fold 생성, int이면 cv만큼 fold 생성
+    if callable(cv) and not isinstance(cv, int):
+        cv_obj = cv(groups) if groups is not None else cv()
+    else:
+        cv_obj = cv
+
     grid = GridSearchCV(
         estimator,
         param_grid,
-        cv=cv,
+        cv=cv_obj,
         scoring=scoring,
         n_jobs=n_jobs,
         refit=True,
@@ -53,7 +60,8 @@ def random_search_tuner(
     param_distributions: Dict[str, Any],
     X: np.ndarray,
     y: np.ndarray,
-    cv: int = 5,
+    cv: Any = 5,
+    groups: np.ndarray | None = None,
     scoring: str | None = None,
     n_iter: int = 50,
     n_jobs: int = -1,
@@ -63,11 +71,17 @@ def random_search_tuner(
 
     ``n_iter`` controls how many random configurations are tried.
     """
+    # cv값이 cv 분리하는 함수이면 그 방식으로 fold 생성, int이면 cv만큼 fold 생성
+    if callable(cv) and not isinstance(cv, int):
+        cv_obj = cv(groups) if groups is not None else cv()
+    else:
+        cv_obj = cv
+
     rand = RandomizedSearchCV(
         estimator,
         param_distributions,
         n_iter=n_iter,
-        cv=cv,
+        cv=cv_obj,
         scoring=scoring,
         n_jobs=n_jobs,
         random_state=random_state,
@@ -81,7 +95,8 @@ def optuna_tuner(
     estimator_factory: Callable[[optuna.Trial], Any],
     X: np.ndarray,
     y: np.ndarray,
-    cv: int = 5,
+    cv: Any = 5,
+    groups: np.ndarray | None = None,
     scoring: str = "roc_auc",
     n_trials: int = 50,
     timeout: int | None = None,
@@ -91,12 +106,19 @@ def optuna_tuner(
 
     Returns the best estimator (trained on the full data), the best params and the best CV score.
     """
+
+    # cv값이 cv 분리하는 함수이면 그 방식으로 fold 생성, int이면 cv만큼 fold 생성
+    if callable(cv) and not isinstance(cv, int):
+        cv_obj = cv(groups) if groups is not None else cv()
+    else:
+        cv_obj = cv
     def objective(trial: optuna.Trial) -> float:
         estimator = estimator_factory(trial)
         scores = cross_val_score(
-            estimator, X, y, cv=cv, scoring=scoring, n_jobs=-1
+            estimator, X, y, cv=cv_obj, scoring=scoring, n_jobs=-1
         )
         return np.mean(scores)
+
 
     study = optuna.create_study(direction=direction)
     study.optimize(objective, n_trials=n_trials, timeout=timeout)
@@ -123,7 +145,7 @@ if __name__ == "__main__":
     scaler = StandardScaler()
     X = scaler.fit_transform(X)
 
-    # 1️⃣ Grid search – increase max_iter for reliable convergence
+    # Grid search – increase max_iter for reliable convergence
     param_grid = {"C": [0.01, 0.1, 1, 10], "penalty": ["l2"]}
     best_est, best_cfg, best_sc = grid_search_tuner(
         LogisticRegression(max_iter=1000, solver="lbfgs"), param_grid, X, y
