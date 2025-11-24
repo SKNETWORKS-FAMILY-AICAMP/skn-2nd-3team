@@ -1,4 +1,4 @@
-from sklearn.metrics import accuracy_score, roc_auc_score, classification_report, f1_score
+from sklearn.metrics import accuracy_score, roc_auc_score, classification_report, f1_score, recall_score, precision_score
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import StackingClassifier
@@ -141,8 +141,12 @@ def evaluate_model(
     acc = accuracy_score(y_test, y_pred)
     roc = roc_auc_score(y_test, y_proba)
     f1 = f1_score(y_test, y_pred)
+    recall = recall_score(y_test, y_pred)
+    precision = precision_score(y_test, y_pred)
     print(f"정확도: {acc:.4f}")
     print(f"ROC-AUC: {roc:.4f}")
     print(f"f1-score: {f1:.4f}")
+    print(f"recall: {recall:.4f}")
+    print(f"precision: {precision:.4f}")
     print("\n분류 리포트:")
     print(classification_report(y_test, y_pred))

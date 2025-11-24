@@ -41,6 +41,7 @@ if __name__ == '__main__':
         evaluate_model(model, X_test, y_test)
         print("\n")
         print(f"Fold {i+1} 모델 평가 완료")
+        print("===" * 40)
 
     # 모델 저장
     import joblib
