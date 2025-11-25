@@ -188,10 +188,6 @@ if __name__ == '__main__':
         is_feature_engineering=True,
         cv_strategy=None,  # 'stratified_kfold', 'kfold', None
         tuning_strategy=None,  # None, 'optuna', 'grid_search', 'random_search'
-        ensemble_strategy='stacking',  # 'stacking', 'voting', 'logistic', 'lgbm'
-        is_save=True
+        ensemble_strategy='logistic',  # 'stacking', 'voting', 'logistic', 'lgbm'
+        is_save=False
     )
-    
-    # 결과 출력
-    print(f"평균 F1: {results['summary']['f1']['mean']:.4f}")
-    print(f"평균 Recall: {results['summary']['recall']['mean']:.4f}")
