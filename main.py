@@ -1,5 +1,6 @@
 import pandas as pd
 import os
+import joblib
 from typing import Dict
 from src.cv import split_train_test, kfold_split, stratified_kfold_split
 from src.ensemble import train_logistic_regression, evaluate_model, train_stacking_ensemble, train_voting_ensemble
@@ -86,13 +87,3 @@ if __name__ == '__main__':
         is_ensemble=True,
         is_save=True,
         )
-
-    # 모델 저장
-    import joblib
-    import os
-    
-    save_dir = 'results/Final_Model'
-    os.makedirs(save_dir, exist_ok=True)
-    model_path = os.path.join(save_dir, 'final_model.joblib')
-    joblib.dump(model, model_path)
-    print(f"모델이 저장되었습니다: {model_path}")
