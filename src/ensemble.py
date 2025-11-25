@@ -42,31 +42,70 @@ def _apply_gpu_defaults(params: Dict[str, Any], model_key: str, use_gpu: bool) -
     
     XGBoost 3.x 버전부터는 device='cuda'와 tree_method='hist'를 사용합니다.
     실제로 CUDA가 사용 가능한지 먼저 체크합니다.
+    
+    Note: LightGBM은 항상 CPU 모드로 실행됩니다.
     """
-    if not use_gpu:
-        return params
-
     params = params.copy()
     
-    # 실제로 CUDA가 사용 가능한지 체크
-    cuda_available = _check_cuda_available()
-    
     if model_key == 'xgb':
-        if cuda_available:
-            # CUDA 사용 가능: GPU 모드 활성화
-            params.setdefault('device', 'cuda')
-            params.setdefault('tree_method', 'hist')
-        else:
-            # CUDA 사용 불가: CPU 모드로 fallback
+        if not use_gpu:
             params.setdefault('device', 'cpu')
             params.setdefault('tree_method', 'hist')
+        else:
+            # 실제로 CUDA가 사용 가능한지 체크
+            cuda_available = _check_cuda_available()
+            if cuda_available:
+                # CUDA 사용 가능: GPU 모드 활성화
+                params.setdefault('device', 'cuda')
+                params.setdefault('tree_method', 'hist')
+            else:
+                # CUDA 사용 불가: CPU 모드로 fallback
+                params.setdefault('device', 'cpu')
+                params.setdefault('tree_method', 'hist')
     elif model_key == 'lgbm':
-        if cuda_available:
-            params.setdefault('device', 'gpu')
-            params.setdefault('gpu_platform_id', 0)
-            params.setdefault('gpu_device_id', 0)
-        else:
-            params.setdefault('device', 'cpu')
+        # LightGBM은 항상 CPU 모드로 실행
+        params.setdefault('device', 'cpu')
+        # GPU 관련 파라미터 제거 (있다면)
+        params.pop('gpu_platform_id', None)
+        params.pop('gpu_device_id', None)
+        params.pop('gpu_use_dp', None)
+    return params
+
+
+def _get_optuna_cv_workers(model_key: str, use_gpu: bool) -> int:
+    """
+    GPU 사용 시 Optuna 교차검증 작업 수를 제한합니다.
+
+    LightGBM/XGBoost를 GPU로 학습하면 병렬 CV가 동시에 여러 GPU 학습을
+    띄워 VRAM을 고갈시킬 수 있으므로 1로 고정합니다.
+    """
+    if use_gpu and model_key in {'xgb', 'lgbm'}:
+        return 1
+    return -1
+
+
+def _lightgbm_trial_params(
+    trial: Any,
+    scale_pos_weight: float,
+    use_gpu: bool
+) -> Dict[str, Any]:
+    """LightGBM Optuna 탐색 공간을 구성합니다. (CPU 모드 전용)"""
+    # LightGBM은 항상 CPU 모드이므로 GPU 제약 없이 최대값 사용
+    params = {
+        'n_estimators': trial.suggest_int('n_estimators', 100, 500),
+        'learning_rate': trial.suggest_float('learning_rate', 0.01, 0.3, log=True),
+        'num_leaves': trial.suggest_int('num_leaves', 16, 100),
+        'max_depth': trial.suggest_int('max_depth', 3, 12),
+        'subsample': trial.suggest_float('subsample', 0.6, 1.0),
+        'colsample_bytree': trial.suggest_float('colsample_bytree', 0.6, 1.0),
+        'min_child_samples': trial.suggest_int('min_child_samples', 20, 200),
+        'max_bin': trial.suggest_int('max_bin', 32, 255),
+        'subsample_freq': trial.suggest_int('subsample_freq', 1, 3),
+        'scale_pos_weight': scale_pos_weight,
+        'random_state': 42,
+        'n_jobs': -1,
+        'verbosity': -1
+    }
     return params
 
 
@@ -420,12 +459,15 @@ def _tune_base_models(
     print("\n🚀 XGBoost 튜닝 중...")
     if tuning_strategy == 'optuna':
         def xgb_factory(trial: optuna.Trial):
+            est_upper = 350 if use_gpu else 500
+            depth_upper = 8 if use_gpu else 10
+            subsample_high = 0.9 if use_gpu else 1.0
             params = {
-                'n_estimators': trial.suggest_int('n_estimators', 100, 500),
+                'n_estimators': trial.suggest_int('n_estimators', 100, est_upper),
                 'learning_rate': trial.suggest_float('learning_rate', 0.01, 0.3, log=True),
-                'max_depth': trial.suggest_int('max_depth', 3, 10),
-                'subsample': trial.suggest_float('subsample', 0.6, 1.0),
-                'colsample_bytree': trial.suggest_float('colsample_bytree', 0.6, 1.0),
+                'max_depth': trial.suggest_int('max_depth', 3, depth_upper),
+                'subsample': trial.suggest_float('subsample', 0.6, subsample_high),
+                'colsample_bytree': trial.suggest_float('colsample_bytree', 0.6, 0.95),
                 'scale_pos_weight': scale_pos_weight,
                 'eval_metric': "logloss",
                 'random_state': 42,
@@ -436,7 +478,8 @@ def _tune_base_models(
             return XGBClassifier(**params)
         xgb_best, xgb_params, xgb_score = optuna_tuner(
             xgb_factory, X_train, y_train,
-            cv=cv, n_trials=n_trials, scoring='recall'
+            cv=cv, n_trials=n_trials, scoring='recall',
+            cv_n_jobs=_get_optuna_cv_workers('xgb', use_gpu)
         )
     elif tuning_strategy == 'grid_search':
         param_grid = {
@@ -480,23 +523,13 @@ def _tune_base_models(
     print("\n💡 LightGBM 튜닝 중...")
     if tuning_strategy == 'optuna':
         def lgbm_factory(trial: optuna.Trial):
-            params = {
-                'n_estimators': trial.suggest_int('n_estimators', 100, 500),
-                'learning_rate': trial.suggest_float('learning_rate', 0.01, 0.3, log=True),
-                'num_leaves': trial.suggest_int('num_leaves', 20, 100),
-                'max_depth': trial.suggest_int('max_depth', 3, 10),
-                'subsample': trial.suggest_float('subsample', 0.6, 1.0),
-                'colsample_bytree': trial.suggest_float('colsample_bytree', 0.6, 1.0),
-                'scale_pos_weight': scale_pos_weight,
-                'random_state': 42,
-                'n_jobs': -1,
-                'verbosity': -1
-            }
+            params = _lightgbm_trial_params(trial, scale_pos_weight, use_gpu)
             params = _apply_gpu_defaults(params, 'lgbm', use_gpu)
             return LGBMClassifier(**params)
         lgbm_best, lgbm_params, lgbm_score = optuna_tuner(
             lgbm_factory, X_train, y_train,
-            cv=cv, n_trials=n_trials, scoring='recall'
+            cv=cv, n_trials=n_trials, scoring='recall',
+            cv_n_jobs=_get_optuna_cv_workers('lgbm', use_gpu)
         )
     elif tuning_strategy == 'grid_search':
         param_grid = {

@@ -23,7 +23,8 @@ from src.cv import stratified_kfold_split
 from src.ensemble import train_stacking_ensemble, train_voting_ensemble, evaluate_model
 
 # 환경 변수 IBSQR_USE_GPU=0 로 설정하면 강제로 CPU 사용
-USE_GPU = os.environ.get("IBSQR_USE_GPU", "1").lower() in {"1", "true", "yes"}
+# LightGBM은 항상 CPU 모드로 실행되므로 기본값을 False로 설정
+USE_GPU = os.environ.get("IBSQR_USE_GPU", "0").lower() in {"1", "true", "yes"}
 
 
 def run_single_experiment(
@@ -154,7 +155,7 @@ def main():
     print(f"   - 총 실험 수: {len(ensemble_strategies) * len(n_trials_list)}개\n")
     
     # 결과 저장 경로 설정
-    save_dir = 'results/tunning'
+    save_dir = 'results/parameter_tuning'
     os.makedirs(save_dir, exist_ok=True)
     save_path = os.path.join(save_dir, 'n_trials_comparison.csv')
     

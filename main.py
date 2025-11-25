@@ -233,5 +233,5 @@ if __name__ == '__main__':
         tuning_strategy='optuna',  # None, 'optuna', 'grid_search', 'random_search'
         ensemble_strategy='voting',  # 'stacking', 'voting', 'logistic'
         is_save=False,
-        use_gpu=True  # GPU 가속 활성화 (XGBoost, LightGBM)
+        use_gpu=False  # GPU 가속 비활성화 (LightGBM은 항상 CPU 모드)
     )

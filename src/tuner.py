@@ -6,6 +6,7 @@ import numpy as np
 from sklearn.model_selection import GridSearchCV, RandomizedSearchCV, cross_val_score
 from sklearn.preprocessing import StandardScaler
 import optuna
+from optuna.exceptions import TrialPruned
 from scipy.stats import loguniform
 from .cv import stratified_kfold_split
 
@@ -101,10 +102,21 @@ def optuna_tuner(
     n_trials: int = 50,
     timeout: int | None = None,
     direction: str = "maximize",
+    cv_n_jobs: int | None = -1,
+    prune_on_fail: bool = True,
 ) -> Tuple[Any, Dict[str, Any], float]:
-    """Hyper‑parameter optimisation with Optuna.
+    """Hyper-parameter optimisation with Optuna.
 
     Returns the best estimator (trained on the full data), the best params and the best CV score.
+
+    Parameters
+    ----------
+    cv_n_jobs : int | None
+        Number of parallel jobs for the CV loop. Use 1 when GPU estimators are
+        involved to avoid launching multiple GPU trainings at once.
+    prune_on_fail : bool
+        If True, any training failure (e.g., GPU OOM) prunes the trial instead
+        of bubbling the exception up to Optuna.
     """
 
     # cv값이 cv 분리하는 함수이면 그 방식으로 fold 생성, int이면 cv만큼 fold 생성
@@ -114,9 +126,21 @@ def optuna_tuner(
         cv_obj = cv
     def objective(trial: optuna.Trial) -> float:
         estimator = estimator_factory(trial)
-        scores = cross_val_score(
-            estimator, X, y, cv=cv_obj, scoring=scoring, n_jobs=-1
-        )
+        try:
+            scores = cross_val_score(
+                estimator,
+                X,
+                y,
+                cv=cv_obj,
+                scoring=scoring,
+                n_jobs=cv_n_jobs,
+                error_score="raise",
+            )
+        except Exception as exc:
+            if prune_on_fail:
+                trial.set_user_attr("failed_reason", str(exc))
+                raise TrialPruned(f"Trial pruned due to failure: {exc}") from exc
+            raise
         return np.mean(scores)
 
 
