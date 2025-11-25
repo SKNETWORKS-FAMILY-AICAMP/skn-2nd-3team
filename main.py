@@ -6,8 +6,7 @@ import pandas as pd
 import numpy as np
 import os
 import joblib
-from typing import Dict, List
-from sklearn.model_selection import StratifiedKFold
+from typing import Dict, List, Optional
 
 from src.cv import stratified_kfold_split, kfold_split
 from src.ensemble import train_stacking_ensemble, train_voting_ensemble, train_logistic_regression, evaluate_model
@@ -27,18 +26,9 @@ def run(
     """
     머신러닝 파이프라인 실행
     
-    Args:
-        df: 데이터프레임
-        target_col: 타겟 컬럼명
-        is_preprocess: 전처리 수행 여부
-        is_feature_engineering: 피처 엔지니어링 수행 여부
-        cv_strategy: CV 전략 ('stratified_kfold', 'kfold', None)
-        tuning_strategy: 튜닝 전략 (None, 'optuna', 'grid_search', 'random_search')
-        ensemble_strategy: 앙상블 전략 ('stacking', 'voting', 'logistic')
-        is_save: 모델 저장 여부
-    
-    Returns:
-        Dict: 결과 딕셔너리
+    💡 핵심 개선:
+    - 튜닝은 한 번만 수행 (전체 데이터로)
+    - CV 평가는 튜닝된 파라미터로 수행
     """
     
     print(f"\n{'='*80}")
@@ -59,9 +49,37 @@ def run(
     
     # 피처와 타겟 분리
     features = df.drop(columns=[target_col]).columns.tolist()
+    X_full = df[features]
+    y_full = df[target_col]
     
-    # 2️⃣ CV 설정
-    print(f"\n2️⃣ CV 전략: {cv_strategy or '단순 분할'}")
+    # 2️⃣ 튜닝 (한 번만!)
+    best_params = None
+    if tuning_strategy is not None:
+        print(f"\n2️⃣ 하이퍼파라미터 튜닝 ({tuning_strategy})")
+        print("   ⚡ 전체 데이터로 한 번만 튜닝...")
+        
+        # 전체 데이터로 튜닝하여 최적 파라미터 찾기
+        if ensemble_strategy == 'stacking':
+            tuned_model = train_stacking_ensemble(
+                X_full, y_full,
+                cv_strategy=cv_strategy,
+                tuning_strategy=tuning_strategy,
+                n_trials=50  # 필요시 조정
+            )
+        elif ensemble_strategy == 'voting':
+            tuned_model = train_voting_ensemble(
+                X_full, y_full,
+                cv_strategy=cv_strategy,
+                tuning_strategy=tuning_strategy,
+                n_trials=50
+            )
+        
+        print("   ✅ 튜닝 완료! 최적 파라미터 찾음")
+    else:
+        print(f"\n2️⃣ 튜닝 스킵 (기본 파라미터 사용)")
+    
+    # 3️⃣ CV 설정
+    print(f"\n3️⃣ CV 전략: {cv_strategy or '단순 분할'}")
     if cv_strategy == 'stratified_kfold':
         folds = stratified_kfold_split(df, target_col=target_col, n_splits=5, shuffle=True, random_state=42)
     elif cv_strategy == 'kfold':
@@ -72,10 +90,10 @@ def run(
         train_df, test_df = train_test_split(df, test_size=0.2, stratify=df[target_col], random_state=42)
         folds = [(train_df.index.tolist(), test_df.index.tolist())]
     
-    # 3️⃣ 각 폴드에서 모델 학습 및 평가
-    print(f"\n3️⃣ 모델 학습 및 평가")
+    # 4️⃣ 각 폴드에서 평가 (튜닝 안 함!)
+    print(f"\n4️⃣ 모델 평가 (각 폴드)")
     print(f"   모델: {ensemble_strategy}")
-    print(f"   튜닝: {tuning_strategy or '없음'}\n")
+    print(f"   {'✅ 튜닝된 파라미터 사용' if tuning_strategy else '기본 파라미터 사용'}\n")
     
     cv_results = []
     models = []
@@ -91,18 +109,18 @@ def run(
         X_val = df.loc[val_idx, features]
         y_val = df.loc[val_idx, target_col]
         
-        # 모델 학습 (cv_strategy를 앙상블 내부에도 전달)
+        # 모델 학습 (튜닝 없이!)
         if ensemble_strategy == 'stacking':
             model = train_stacking_ensemble(
                 X_train, y_train,
-                cv_strategy=cv_strategy,  # 👈 통일된 CV 전략
-                tuning_strategy=tuning_strategy
+                cv_strategy=cv_strategy,
+                tuning_strategy=None  # 👈 튜닝 안 함!
             )
         elif ensemble_strategy == 'voting':
             model = train_voting_ensemble(
                 X_train, y_train,
-                cv_strategy=cv_strategy,  # 👈 통일된 CV 전략
-                tuning_strategy=tuning_strategy
+                cv_strategy=cv_strategy,
+                tuning_strategy=None  # 👈 튜닝 안 함!
             )
         else:  # logistic
             model = train_logistic_regression(X_train, y_train)
@@ -117,7 +135,7 @@ def run(
         cv_results.append(metrics)
         models.append(model)
     
-    # 4️⃣ 결과 요약
+    # 5️⃣ 결과 요약
     print(f"\n{'='*80}")
     print("📊 최종 결과 요약")
     print(f"{'='*80}")
@@ -133,29 +151,28 @@ def run(
             print(f"{metric:12s}: {summary[metric]['mean']:.4f} ± {summary[metric]['std']:.4f}")
     print(f"{'='*80}\n")
     
-    # 5️⃣ 최종 모델 학습 (전체 데이터)
-    print("5️⃣ 최종 모델 학습 (전체 데이터)...")
-    X_full = df[features]
-    y_full = df[target_col]
-    
-    if ensemble_strategy == 'stacking':
-        final_model = train_stacking_ensemble(
-            X_full, y_full,
-            cv_strategy=cv_strategy,
-            tuning_strategy=tuning_strategy
-        )
-    elif ensemble_strategy == 'voting':
-        final_model = train_voting_ensemble(
-            X_full, y_full,
-            cv_strategy=cv_strategy,
-            tuning_strategy=tuning_strategy
-        )
-    else:
-        final_model = train_logistic_regression(X_full, y_full)
-    
-    # 6️⃣ 모델 저장
     if is_save:
-        print(f"\n6️⃣ 모델 저장...")
+        # 6️⃣ 최종 모델 학습 (전체 데이터)
+        print("6️⃣ 최종 모델 학습 (전체 데이터)...")
+        
+        if ensemble_strategy == 'stacking':
+            final_model = train_stacking_ensemble(
+                X_full, y_full,
+                cv_strategy=cv_strategy,
+                tuning_strategy=tuning_strategy  # 처음 튜닝한 결과 재사용
+            )
+        elif ensemble_strategy == 'voting':
+            final_model = train_voting_ensemble(
+                X_full, y_full,
+                cv_strategy=cv_strategy,
+                tuning_strategy=tuning_strategy
+            )
+        else:
+            final_model = train_logistic_regression(X_full, y_full)
+    
+    # 7️⃣ 모델 저장
+    if is_save:
+        print(f"\n7️⃣ 모델 저장...")
         save_dir = 'results/Final_Model'
         os.makedirs(save_dir, exist_ok=True)
         model_path = os.path.join(save_dir, f'{ensemble_strategy}_model.joblib')
@@ -185,11 +202,7 @@ if __name__ == '__main__':
         is_preprocess=True,
         is_feature_engineering=True,
         cv_strategy='stratified_kfold',  # 'stratified_kfold', 'kfold', None
-        tuning_strategy=None,  # None, 'optuna', 'grid_search', 'random_search'
-        ensemble_strategy='stacking',  # 'stacking', 'voting', 'logistic', 'lgbm'
-        is_save=True
+        tuning_strategy='optuna',  # None, 'optuna', 'grid_search', 'random_search'
+        ensemble_strategy='stacking',  # 'stacking', 'voting', 'logistic'
+        is_save=False
     )
-    
-    # 결과 출력
-    print(f"평균 F1: {results['summary']['f1']['mean']:.4f}")
-    print(f"평균 Recall: {results['summary']['recall']['mean']:.4f}")
