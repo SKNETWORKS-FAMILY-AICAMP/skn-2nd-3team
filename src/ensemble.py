@@ -260,6 +260,11 @@ def _tune_base_models(
             param_dist, X_train, y_train, 
             cv=cv, n_iter=n_trials, scoring='recall'
         )
+    else:
+        raise ValueError(
+            f"Unknown tuning_strategy: {tuning_strategy}. "
+            "지원되는 값: 'optuna', 'grid_search', 'random_search'"
+        )
     
     print(f"   ✅ 최적 파라미터: {rf_params}")
     print(f"   ✅ CV 점수: {rf_score:.4f}")
