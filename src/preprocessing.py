@@ -16,7 +16,9 @@ def load_data(csv_file_path = csv_file_path):
 def drop_column(df):
     """이탈 예측용 데이터 전처리"""
     df = df.copy()
-    df['Attrition_Binary'] = (df['Attrition_Flag'] == 'Attrited Customer').astype(int)
+    if 'Attrition_Flag' in df.columns:
+        df['Attrition_Binary'] = (df['Attrition_Flag'] == 'Attrited Customer').astype(int)
+    
     drop_cols = [col for col in [
         'CLIENTNUM',
         'Attrition_Flag',

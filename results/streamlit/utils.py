@@ -1,6 +1,15 @@
 import pandas as pd
 import streamlit as st
 import os
+import sys
+
+# Add project root to sys.path
+current_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.abspath(os.path.join(current_dir, '../../'))
+if project_root not in sys.path:
+    sys.path.append(project_root)
+
+from src.preprocessing import preprocess_pipeline, feature_engineering_pipeline
 
 @st.cache_data
 def load_data():
@@ -91,15 +100,9 @@ def load_model():
 
 def preprocess_for_inference(df, model):
     """
-    Preprocesses the dataframe for inference, ensuring feature alignment.
+    Preprocesses the dataframe for inference using the main pipeline.
     """
-    # 1. Revert Korean column names to English for processing (if needed)
-    # Since we renamed them in load_data, we need to map them back or use the original df before renaming.
-    # However, load_data returns the renamed df. 
-    # Strategy: Create a reverse mapping or handle it.
-    # Better Strategy: The user sees Korean, but the model needs English.
-    # Let's create a reverse mapping.
-    
+    # 1. Revert Korean column names to English
     korean_to_english = {
         "회원 ID": "CLIENTNUM",
         "이탈 여부": "Attrition_Flag",
@@ -128,25 +131,15 @@ def preprocess_for_inference(df, model):
     
     df_processed = df.rename(columns=korean_to_english)
     
-    # 2. Drop columns that were dropped during training (CLIENTNUM, Attrition_Flag, Naive_Bayes...)
-    # Note: load_data already dropped Attrition_Flag and Naive_Bayes.
-    # CLIENTNUM is still there (as 1-based index).
-    if 'CLIENTNUM' in df_processed.columns:
-        df_processed = df_processed.drop(columns=['CLIENTNUM'])
-        
-    # 3. Handle Missing Values (Same as training)
-    import numpy as np
-    for col in df_processed.select_dtypes(include='object').columns:
-        if df_processed[col].isnull().any():
-             df_processed[col] = df_processed[col].fillna(df_processed[col].mode()[0])
-    for col in df_processed.select_dtypes(include=np.number).columns:
-        if df_processed[col].isnull().any():
-            df_processed[col] = df_processed[col].fillna(df_processed[col].mean())
-            
-    # 4. One-Hot Encoding
-    df_processed = pd.get_dummies(df_processed, drop_first=True)
+    # 2. Apply Preprocessing Pipeline (from src/preprocessing.py)
+    # This handles dropping columns and filling NaNs (and one-hot encoding)
+    df_processed = preprocess_pipeline(df_processed)
     
-    # 5. Feature Alignment using model.feature_names_in_
+    # 3. Apply Feature Engineering Pipeline (from src/preprocessing.py)
+    # This adds new features and selects features
+    df_processed = feature_engineering_pipeline(df_processed)
+    
+    # 4. Feature Alignment using model.feature_names_in_
     if hasattr(model, 'feature_names_in_'):
         # Add missing columns with 0
         missing_cols = set(model.feature_names_in_) - set(df_processed.columns)
