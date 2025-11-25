@@ -505,23 +505,12 @@ def train_logistic_regression(
     class_weight: str = 'balanced'
 ) -> LogisticRegression:
     """
-    Logistic Regression 모델을 학습합니다.
+    로지스틱 회귀 모델 학습
     
-    💡 용도:
-    - 베이스라인 모델 (비교 기준)
-    - 빠른 프로토타입
-    - 해석 가능성이 중요한 경우
-    
-    Args:
-        X_train: 훈련 데이터
-        y_train: 타겟 데이터
-        class_weight: 클래스 불균형 처리 방법
-    
-    Returns:
-        LogisticRegression: 학습된 모델
+    💡 개선: max_iter를 5000으로 증가하여 수렴 경고 방지
     """
     model = LogisticRegression(
-        max_iter=1000, 
+        max_iter=5000,  # 👈 ConvergenceWarning 방지
         random_state=42,
         class_weight=class_weight
     )
