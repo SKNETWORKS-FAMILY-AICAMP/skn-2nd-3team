@@ -154,14 +154,10 @@ def run(
                 X_train, y_train,
                 cv_strategy=cv_strategy,
                 tuning_strategy=None  # 👈 튜닝 안 함!
-                cv_strategy=cv_strategy,
-                tuning_strategy=None  # 👈 튜닝 안 함!
             )
         elif ensemble_strategy == 'voting':
             model = train_voting_ensemble(
                 X_train, y_train,
-                cv_strategy=cv_strategy,
-                tuning_strategy=None  # 👈 튜닝 안 함!
                 cv_strategy=cv_strategy,
                 tuning_strategy=None  # 👈 튜닝 안 함!
             )
@@ -178,7 +174,6 @@ def run(
         cv_results.append(metrics)
         models.append(model)
     
-    # 5️⃣ 결과 요약
     # 5️⃣ 결과 요약
     print(f"\n{'='*80}")
     print("📊 최종 결과 요약")
@@ -214,7 +209,6 @@ def run(
         else:
             final_model = train_logistic_regression(X_full, y_full)
     
-    # 7️⃣ 모델 저장
     # 7️⃣ 모델 저장
     if is_save:
         print(f"\n7️⃣ 모델 저장...")
