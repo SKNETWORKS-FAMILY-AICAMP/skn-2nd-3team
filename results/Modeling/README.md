@@ -6,14 +6,14 @@
 
 ## 2. 최종 선정 된 모델에 대한 설명
 
-- **선정 모델**: <span style="color:#0066cc;">LightGBM (Gradient Boosting Decision Tree)</span>
+- **선정 모델**: LightGBM (Gradient Boosting Decision Tree)
 
   - 사용한 파라미터: `learning_rate=?`, `num_leaves=?`, `max_depth=?`, `feature_fraction=?`, `bagging_fraction=?`, `bagging_freq=?`
   - 학습에 활용한 피처 수: **?개** (전처리 단계에서 결측치 처리·원-핫 인코딩 후)
 
-- **앙상블 전략** 
+- **앙상블 전략**
 
-  - 하이퍼 파라미터 튜닝된 RandomForest와 XGBoost 모델을 기반으로 Voting과 Stacking 앙상블을 적용했습니다.  Logistic을 최종 분류기로 적용해 더 정교한 의사결정을 수행했습니다. 서로 다른 알고리즘이 학습한 패턴을 통합함으로, 단일 모델로는 포착하기 어려운 관계를 반영했습니다. 
+  - 하이퍼 파라미터 튜닝된 RandomForest와 XGBoost 모델을 기반으로 Voting과 Stacking 앙상블을 적용했습니다. Logistic을 최종 분류기로 적용해 더 정교한 의사결정을 수행했습니다. 서로 다른 알고리즘이 학습한 패턴을 통합함으로, 단일 모델로는 포착하기 어려운 관계를 반영했습니다.
   - 앙상블 적용 시 AUC‑ROC가 `+0.00928` 상승.
 
 - **핵심 특징 및 해석**

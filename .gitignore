@@ -47,3 +47,5 @@ data/processed/
 
 # Logs
 *.log
+
+02_Baseline.ipynb

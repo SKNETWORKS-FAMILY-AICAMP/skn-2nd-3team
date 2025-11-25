@@ -6,6 +6,7 @@ from sklearn.ensemble import VotingClassifier
 from sklearn.pipeline import Pipeline
 from xgboost import XGBClassifier
 import numpy as np
+from typing import Optional
 
 ####################################
 def train_voting_ensemble(
@@ -69,7 +70,7 @@ def train_voting_ensemble(
 def train_stacking_ensemble(
     X_train, 
     y_train, 
-    cv_folds=5
+    cv_folds=5,
     ):
     """
     Random Forest와 XGBoost를 기반으로 한 Stacking 앙상블 모델을 학습시키는 함수.
@@ -134,6 +135,8 @@ def evaluate_model(
     model,
     X_test,
     y_test,
+    fold_num: Optional[int] = None,
+    n_splits: Optional[int] = None,
 ):
     """모델 예측 및 평가 결과 출력"""
     y_pred = model.predict(X_test)
@@ -143,6 +146,8 @@ def evaluate_model(
     f1 = f1_score(y_test, y_pred)
     recall = recall_score(y_test, y_pred)
     precision = precision_score(y_test, y_pred)
+    if fold_num is not None:
+        print(f"============= Fold {fold_num}/{n_splits} 평가 결과:=============")
     print(f"정확도: {acc:.4f}")
     print(f"ROC-AUC: {roc:.4f}")
     print(f"f1-score: {f1:.4f}")

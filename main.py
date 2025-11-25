@@ -3,7 +3,8 @@ import os
 from typing import Dict
 from src.cv import split_train_test, kfold_split, stratified_kfold_split
 from src.ensemble import train_logistic_regression, evaluate_model, train_stacking_ensemble, train_voting_ensemble
-from src.preprocessing import load_data, preprocess_pipeline, drop_column, feature_engineering_pipeline
+from src.preprocessing import load_data, preprocess_pipeline, feature_engineering_pipeline, drop_column, replace_nan_value, add_feature_engineering, select_features
+
 # 데이터 불러오기 및 전처리
 
 def run(
@@ -12,23 +13,13 @@ def run(
     is_preprocess: bool = True,
     is_feature_engineering: bool = True,
     is_cv: bool = True,
-    is_tuning: bool = True,
+    tuning_strategy: str = 'optuna', # grid_search, random_search, optuna
+    ensemble_strategy: str = 'stacking', # voting, stacking
     is_ensemble: bool = True,
     is_save: bool = True,
     ) -> Dict:
     """
     Run complete pipeline
-
-    Args:
-        df (_type_): _description_
-        is_preprocess (bool, optional): _description_. Defaults to True.
-        is_feature_engineering (bool, optional): _description_. Defaults to True.
-        is_ensemble (bool, optional): _description_. Defaults to True.
-        is_tuning (bool, optional): _description_. Defaults to True.
-        is_save (bool, optional): _description_. Defaults to True.
-
-    Returns:
-        Dict: _description_
     """
 
     if is_preprocess:
@@ -53,18 +44,24 @@ def run(
             y_test = df.loc[test_idx, target_col]
 
             if is_ensemble:
-                model = train_stacking_ensemble(X_train, y_train) # ensemble.py
+                if ensemble_strategy == 'stacking':
+                    model = train_stacking_ensemble(X_train, y_train, tuning_strategy=tuning_strategy) # ensemble.py
+                else:
+                    model = train_voting_ensemble(X_train, y_train, tuning_strategy=tuning_strategy) # ensemble.py
             else:
                 model = train_logistic_regression(X_train, y_train)
-            evaluate_model(model, X_test, y_test)
+            evaluate_model(model, X_test, y_test, fold_num=i, n_splits=5)
     else:
         # 일반적인 Fold
         X_train, X_test, y_train, y_test = split_train_test(df, target_col)
         if is_ensemble:
-            model = train_stacking_ensemble(X_train, y_train) # ensemble.py
+            if ensemble_strategy == 'stacking':
+                model = train_stacking_ensemble(X_train, y_train, tuning_strategy=tuning_strategy) # ensemble.py
+            else:
+                model = train_voting_ensemble(X_train, y_train, tuning_strategy=tuning_strategy) # ensemble.py
         else:
             model = train_logistic_regression(X_train, y_train)
-        evaluate_model(model, X_test, y_test)
+        evaluate_model(model, X_test, y_test, fold_num=i, n_splits=5)
 
     if is_save:
         save_dir = 'results/Final_Model'
@@ -82,8 +79,8 @@ if __name__ == '__main__':
         is_preprocess=True,
         is_feature_engineering=True,
         is_cv=True,
-        is_tuning=True,
-        is_ensemble=True,
+        tuning_strategy='optuna', # grid_search, random_search, optuna
+        ensemble_strategy='stacking', # voting, stacking
         is_save=True,
         )
 
