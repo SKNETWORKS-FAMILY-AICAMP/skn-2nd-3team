@@ -1,6 +1,6 @@
 from src.cv import split_train_test, kfold_split, stratified_kfold_split
 from src.ensemble import train_logistic_regression, evaluate_model, train_stacking_ensemble, train_voting_ensemble
-from src.preprocessing import load_data, preprocess_data, drop_column, replace_nan_value, add_feature_engineering, select_features
+from src.preprocessing import load_data, preprocess_pipeline, drop_column, replace_nan_value, add_feature_engineering, select_features
 
 # 데이터 불러오기 및 전처리
 
