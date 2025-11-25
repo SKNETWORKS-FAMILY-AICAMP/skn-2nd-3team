@@ -14,7 +14,7 @@ from sklearn.ensemble import RandomForestClassifier, StackingClassifier, VotingC
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import (
     accuracy_score, roc_auc_score, classification_report, 
-    f1_score, recall_score, precision_score
+    f1_score, recall_score, precision_score, average_precision_score
 )
 from sklearn.model_selection import StratifiedKFold, KFold
 from xgboost import XGBClassifier
@@ -505,23 +505,12 @@ def train_logistic_regression(
     class_weight: str = 'balanced'
 ) -> LogisticRegression:
     """
-    Logistic Regression 모델을 학습합니다.
+    로지스틱 회귀 모델 학습
     
-    💡 용도:
-    - 베이스라인 모델 (비교 기준)
-    - 빠른 프로토타입
-    - 해석 가능성이 중요한 경우
-    
-    Args:
-        X_train: 훈련 데이터
-        y_train: 타겟 데이터
-        class_weight: 클래스 불균형 처리 방법
-    
-    Returns:
-        LogisticRegression: 학습된 모델
+    💡 개선: max_iter를 5000으로 증가하여 수렴 경고 방지
     """
     model = LogisticRegression(
-        max_iter=1000, 
+        max_iter=5000,  # 👈 ConvergenceWarning 방지
         random_state=42,
         class_weight=class_weight
     )
@@ -574,16 +563,19 @@ def evaluate_model(
     # 예측
     y_pred = model.predict(X_test)
     
-    # ROC-AUC는 predict_proba를 지원하는 모델만 계산 가능
+    # ROC-AUC와 PR-AUC는 predict_proba를 지원하는 모델만 계산 가능
     roc_auc = None
+    pr_auc = None
     if hasattr(model, "predict_proba"):
         y_proba = model.predict_proba(X_test)[:, 1]
         roc_auc = roc_auc_score(y_test, y_proba)
+        pr_auc = average_precision_score(y_test, y_proba)  # PR-AUC 계산
     
     # 각종 지표 계산
     metrics = {
         'accuracy': accuracy_score(y_test, y_pred),
         'roc_auc': roc_auc if roc_auc is not None else 0.0,
+        'pr_auc': pr_auc if pr_auc is not None else 0.0,  # PR-AUC 추가
         'f1': f1_score(y_test, y_pred),
         'recall': recall_score(y_test, y_pred),
         'precision': precision_score(y_test, y_pred)
@@ -599,6 +591,8 @@ def evaluate_model(
         print(f"📊 정확도 (Accuracy):  {metrics['accuracy']:.4f}")
         if roc_auc is not None:
             print(f"📊 ROC-AUC:            {metrics['roc_auc']:.4f}")
+        if pr_auc is not None:
+            print(f"📊 PR-AUC:             {metrics['pr_auc']:.4f}")
         print(f"📊 F1 Score:           {metrics['f1']:.4f}")
         print(f"📊 재현율 (Recall):     {metrics['recall']:.4f}")
         print(f"📊 정밀도 (Precision):  {metrics['precision']:.4f}")
