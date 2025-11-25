@@ -6,19 +6,28 @@
 
 ## 2. 최종 선정 된 모델에 대한 설명
 
-- **선정 모델**: LightGBM (Gradient Boosting Decision Tree)
+- **선정 모델**: Stacking Ensemble 
 
   - 사용한 파라미터: `learning_rate=?`, `num_leaves=?`, `max_depth=?`, `feature_fraction=?`, `bagging_fraction=?`, `bagging_freq=?`
   - 학습에 활용한 피처 수: **?개** (전처리 단계에서 결측치 처리·원-핫 인코딩 후)
 
 - **앙상블 전략**
 
-  - 하이퍼 파라미터 튜닝된 RandomForest와 XGBoost 모델을 기반으로 Voting과 Stacking 앙상블을 적용했습니다. Logistic을 최종 분류기로 적용해 더 정교한 의사결정을 수행했습니다. 서로 다른 알고리즘이 학습한 패턴을 통합함으로, 단일 모델로는 포착하기 어려운 관계를 반영했습니다.
+  - 1) Base Model 다양성: 
+      - Random Forest: 배깅 기반, 높은 분산에 강함.
+      - XGBoost: 부스팅 기반, 오차를 순차적으로 학습.
+      - LightGBM: Leaf-wise 트리 성장, 학습 속도 우수. 
+
+  - 2) Stacking 구조: 
+      - step1: Base Models -> 5-fold Cross-Validation으로 Out-of-Fold 예측 생성
+      - step2: Meta-Learner -> Base Models의 예측값을 입력으로 최종 분류  
+  
+  하이퍼 파라미터 튜닝된 RandomForest와 XGBoost, LightGBM 모델을 기반으로 Voting과 Stacking 앙상블을 적용했습니다. Logistic을 최종 분류기로 적용해 더 정교한 의사결정을 수행했습니다. 서로 다른 알고리즘이 학습한 패턴을 통합함으로, 단일 모델로는 포착하기 어려운 관계를 반영했습니다.
   - 앙상블 적용 시 AUC‑ROC가 `+0.00928` 상승.
 
 - **핵심 특징 및 해석**
 
-  - 가장 중요한 피처(상위 5개): `총 이용 건수`, `월 평균 사용량`, `계약 기간`, `고객 연령`, `최근 결제 지연 일수`.
+  - 가장 중요한 피처(상위 5개): `Total_Trans_Amt`, `Total_Amt_Chng_Q4_Q1`, `Avg_Transaction_Amount`, `Total_Ct_Chng_Q4_Q1`, `Total_Trans_Ct`.
   - SHAP 값을 활용해 모델이 **‘고객 이탈 가능성 ↑’** 로 예측한 이유를 시각화하고, 비즈니스 팀에 인사이트 제공.
 
 ## 3. 학습 과정 기록 (문지영, 김준석, 신병탁, 이명준)
@@ -58,5 +67,4 @@
   - **AUC‑ROC**: `0.??` (전체 평균)
   - **Accuracy**: `0.??`
   - 이렇게 나눈 이유?
-    Accuracy는 클래스 불균형 취약점이 있어 AUC‑ROC도 같이 사용
-    AUC-ROC란 False Positive Rate(FPR)과 True Positive Rate(TPR)를
+    Accuracy는 클래스 불균형 취약점이 있어 Recall, f1-score, AUC‑ROC도 같이 사용

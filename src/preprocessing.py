@@ -80,15 +80,36 @@ def add_feature_engineering(df: pd.DataFrame) -> pd.DataFrame:
         bins=[0, 0.3, 0.6, 1.0],
         labels=[0, 1, 2]
     ).astype(int)
-
     return df 
 
 def select_features(df: pd.DataFrame) -> pd.DataFrame:
-    """Feature Selection"""
+    """
+    Feature Selection
+    
+    간단한 Feature Selection 예시:
+    Variance(분산)가 거의 0인 컬럼 제거
+    도메인 지식 기반 불필요 칼럼 제거 (예: ID 등)
+	"""
+	
+    df = df.copy()
+    # 분산이 거의 0인 컬럼 드랍
+    low_variance_cols = df.loc[:, df.var() <= 1e-4].columns.tolist()
+    
+	#  타깃변수와 상관관계가 낮은 컬럼 드랍 (Correlation < 0.01)
+    target_col = "Attrition_Binary"
+    if target_col in df.columns:
+        corr = df.corr()[target_col].abs().sort_values(ascending=False)
+        low_corr_cols = corr[corr < 0.01].index.tolist()
+        if target_col in low_corr_cols:
+            low_corr_cols.remove(target_col)
+    else:
+        low_corr_cols = []
+    drop_cols = list(set(low_variance_cols + low_corr_cols))
+    df = df.drop(columns=drop_cols, errors='ignore')
 
     return df
 
-def preprocess_pipeline(df):
+def preprocess_pipeline(df, enginnered_feature_selection=True):
     # 전처리 파이프라인
     # 1. 필요없는 칼럼 드랍
     # 2. nan값 채우기
@@ -109,11 +130,8 @@ def feature_engineering_pipeline(df):
 
 import pandas as pd
 
-# 사용 예시
-# df = preprocess_data(df)
 
 if __name__ == "__main__":
-    df =load_data()
-    df = preprocess_pipeline(df)
-    # print(df['Attrition_Binary'].value_counts())
+    # df =load_data()
+    # df = preprocess_pipeline(df)
     pass

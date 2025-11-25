@@ -40,6 +40,7 @@ var/
 
 # MacOS
 .DS_Store
+**/.DS_Store
 
 # Data files
 data/raw/
@@ -49,3 +50,7 @@ data/processed/
 *.log
 
 02_Baseline.ipynb
+
+# 개인 노트북 폴더
+**/notebook
+notebook
