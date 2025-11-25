@@ -1,3 +1,4 @@
+from re import T
 import pandas as pd
 import os
 import joblib
@@ -29,7 +30,10 @@ def run(
         df = drop_column(df)
 
     if is_feature_engineering:
+        print("is_feature_engineering is True")
         df = feature_engineering_pipeline(df)
+    else:
+        print("is_feature_engineering is False")
     print(df.shape)
     cols = df.drop(columns=('Attrition_Binary'))
     features = cols.columns.tolist()
@@ -46,9 +50,9 @@ def run(
 
             if is_ensemble:
                 if ensemble_strategy == 'stacking':
-                    model = train_stacking_ensemble(X_train, y_train, tuning_strategy=tuning_strategy) # ensemble.py
+                    model = train_stacking_ensemble(X_train, y_train) # ensemble.py
                 else:
-                    model = train_voting_ensemble(X_train, y_train, tuning_strategy=tuning_strategy) # ensemble.py
+                    model = train_voting_ensemble(X_train, y_train) # ensemble.py
             else:
                 model = train_logistic_regression(X_train, y_train)
             evaluate_model(model, X_test, y_test, fold_num=i, n_splits=5)
@@ -57,12 +61,12 @@ def run(
         X_train, X_test, y_train, y_test = split_train_test(df, target_col)
         if is_ensemble:
             if ensemble_strategy == 'stacking':
-                model = train_stacking_ensemble(X_train, y_train, tuning_strategy=tuning_strategy) # ensemble.py
+                model = train_stacking_ensemble(X_train, y_train) # ensemble.py
             else:
-                model = train_voting_ensemble(X_train, y_train, tuning_strategy=tuning_strategy) # ensemble.py
+                model = train_voting_ensemble(X_train, y_train) # ensemble.py
         else:
             model = train_logistic_regression(X_train, y_train)
-        evaluate_model(model, X_test, y_test, fold_num=i, n_splits=5)
+        evaluate_model(model, X_test, y_test, fold_num=None, n_splits=None)
 
     if is_save:
         save_dir = 'results/Final_Model'

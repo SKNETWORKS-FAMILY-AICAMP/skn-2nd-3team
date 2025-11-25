@@ -147,7 +147,7 @@ def evaluate_model(
     recall = recall_score(y_test, y_pred)
     precision = precision_score(y_test, y_pred)
     if fold_num is not None:
-        print(f"============= Fold {fold_num}/{n_splits} 평가 결과:=============")
+        print(f"============= Fold {fold_num+1}/{n_splits} 평가 결과:=============")
     print(f"정확도: {acc:.4f}")
     print(f"ROC-AUC: {roc:.4f}")
     print(f"f1-score: {f1:.4f}")

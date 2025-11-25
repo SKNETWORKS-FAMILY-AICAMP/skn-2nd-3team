@@ -109,7 +109,7 @@ def select_features(df: pd.DataFrame) -> pd.DataFrame:
 
     return df
 
-def preprocess_pipeline(df, enginnered_feature_selection=True):
+def preprocess_pipeline(df):
     # 전처리 파이프라인
     # 1. 필요없는 칼럼 드랍
     # 2. nan값 채우기
