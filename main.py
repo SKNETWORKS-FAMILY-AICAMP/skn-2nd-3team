@@ -186,7 +186,7 @@ if __name__ == '__main__':
         is_feature_engineering=True,
         cv_strategy='stratified_kfold',  # 'stratified_kfold', 'kfold', None
         tuning_strategy=None,  # None, 'optuna', 'grid_search', 'random_search'
-        ensemble_strategy='stacking',  # 'stacking', 'voting', 'logistic'
+        ensemble_strategy='stacking',  # 'stacking', 'voting', 'logistic', 'lgbm'
         is_save=True
     )
     
