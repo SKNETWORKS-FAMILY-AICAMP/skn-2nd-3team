@@ -113,7 +113,7 @@ def _create_base_models_from_params(
     if 'xgb' in best_params:
         xgb_params = best_params['xgb'].copy()
         # 고정 파라미터 추가
-        xgb_params.update({
+        xgb_params.update({ 
             'scale_pos_weight': scale_pos_weight,
             'eval_metric': 'logloss',
             'random_state': 42,

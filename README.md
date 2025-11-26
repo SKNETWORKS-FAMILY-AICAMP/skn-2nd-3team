@@ -1,9 +1,5 @@
 # 📘 프로젝트 README
 
-> **NOTE**: 아래 항목들을 실제 내용으로 채워 주세요. 각 섹션에 팀원 이름·역할·구현 내용 등을 구체적으로 적으면 프로젝트 이해도가 크게 높아집니다. 각 항목을 실제 값으로 교체해 주세요.
-
----
-
 ## 1️⃣ 팀원 및 담당 업무
 
 | #   | 팀원   | 담당 업무                                            | 비고 |
@@ -20,21 +16,20 @@
 
 ### 2‑1️⃣ 주제
 
-> _예시) “은행 고객 이탈(Churn) 예측”_
+> “Credit Card사 고객 이탈(Churn) 예측”_
 
 ### 2‑2️⃣ 주제를 선택한 이유
 
 - **비즈니스 가치** – 이탈 고객을 사전에 파악해 맞춤형 마케팅/유지 전략을 수립할 수 있음.
-- **데이터 가용성** – Kaggle·공공 데이터에 풍부한 고객 거래·행동 로그가 존재.
-- **기술 학습 목표** – LightGBM·앙상블·SHAP 해석 등 최신 ML 기법을 실전 프로젝트에 적용하고 싶음.
+- **데이터 가용성** – Kaggle에 풍부한 데이터가 존재(1만여명의 데이터).
+- **기술 학습 목표** – Tuning, LightGBM·앙상블 등 최신 ML 기법을 실전 프로젝트에 적용하고자 함.
 
 ---
 
 ## 3️⃣ 주요 기능
 
 - **이탈 확률 예측** – 입력된 고객 정보(거래·인구통계)로 이탈 가능성을 실시간 예측.
-- **시각화 대시보드 (Streamlit)** – 전체 고객 이탈 분포, 개별 고객 상세 리포트, 모델 성능 지표(AUC, F1 등).
-- **예측 기반 알림** – 이탈 위험 고객에게 자동 메시지(예: 이메일/카카오톡) 전송 (선택 구현).
+- **시각화 대시보드 (Streamlit)** – 전체 고객 이탈 분포, 이탈 위험 고객 상세 리포트.
 
 ---
 
@@ -43,21 +38,19 @@
 ```
 skn-2nd-3team/
 ├─ .gitignore
-├─ README.md                     ← 현재 파일
+├─ README.md
 ├─ requirements.txt
-├─ main.py                       ← 프로젝트 진입점 (예시)
+├─ main.py                       ← 프로젝트 진입점
 ├─ data/
-│   ├─ raw/                      # 원본 CSV 등
-│   └─ processed/                # 전처리 후 파일
+│   └─ BankChurners.csv          # 원본 CSV 등
 ├─ src/
 │   ├─ preprocessing.py          # 전처리 파이프라인
 │   ├─ cv.py                     # Cross‑validation utils
 │   ├─ ensemble.py               # 앙상블 로직
-│   └─ ...                       # 기타 모듈
-├─ notebook/
-│   ├─ 01_EDA.ipynb
-│   └─ 02_Baseline.ipynb
+│   └─ tuner.py                  # 튜닝 로직
 ├─ results/
+│   ├─ Final_Model/
+│   │   └─ final_model.joblib
 │   ├─ Preprocessing/
 │   │   └─ README.md
 │   ├─ Modeling/
@@ -66,7 +59,6 @@ skn-2nd-3team/
 │       ├─ main.py
 │       ├─ dashboard.py
 │       └─ utils.py
-└─ tests/                         # (선택) unit test
 ```
 
 ---
