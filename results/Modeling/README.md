@@ -13,12 +13,12 @@
 
 - **앙상블 전략**
 
-  - 1) Base Model 다양성: 
+  - 1) Base Model 다양성
       - Random Forest: 배깅 기반, 높은 분산에 강함.
       - XGBoost: 부스팅 기반, 오차를 순차적으로 학습.
       - LightGBM: Leaf-wise 트리 성장, 학습 속도 우수. 
 
-  - 2) Stacking 구조: 
+  - 2) Stacking 구조
       - step1: Base Models -> 5-fold Cross-Validation으로 Out-of-Fold 예측 생성
       - step2: Meta-Learner -> Base Models의 예측값을 입력으로 최종 분류  
   
@@ -65,6 +65,8 @@
 - **평가 지표**
 
   - **AUC‑ROC**: `0.??` (전체 평균)
+  - **Recall**: `0.??`
   - **Accuracy**: `0.??`
+  - **F1-score**: `0.??`
   - 이렇게 나눈 이유?
     Accuracy는 클래스 불균형 취약점이 있어 Recall, f1-score, AUC‑ROC도 같이 사용

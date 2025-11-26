@@ -2,11 +2,10 @@
 
 ## 수집한 데이터 설명
 
-데이터 출처: 2020년 말 https://analyttica.com/leaps/ -> 웹사이트의 운영정책 변경으로 현재 데이터 접근 불가 -> 캐글에 있는 데이터셋 사용
+데이터 출처: (https://www.kaggle.com/datasets/thedevastator/predicting-credit-card-customer-attrition-with-m) -> Kaggle에 있는 'Predicting Credit Card Customer Segmentation', '신용카드 고객 이탈 데이터' 사용
 
 ## EDA 결과
 
-✓ Feature Engineering 완료!
 생성된 파생 변수: Trans_Change_Ratio, Inactivity_Score, Engagement_Score, Utilization_Risk_Level
 최종 데이터 shape: (10127, 34)
 
