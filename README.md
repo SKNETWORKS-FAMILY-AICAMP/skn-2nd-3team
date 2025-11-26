@@ -117,7 +117,7 @@ skn-2nd-3team/
   `CV 전략` → `전처리` → `Feature Engineering` → `튜닝` → `앙상블 전략` 순으로 고정하며 최적화
 - **실험 환경**: Random Seed `42` 고정
 ![optuna_Exp](./data/images/05_optuna_exp.png)
-
+![n_trials](./data/images/06_exp_ntrial.png)
 ### 6-6. 최종 모델 확정
 **가장 안정적이고 높은 성능의 모델/앙상블 조합 도출**
 
