@@ -5,7 +5,7 @@
 | #   | 팀원   | 담당 업무                                            | 비고 |
 | --- | ------ | ---------------------------------------------------- | ---- |
 | 1   | 김준석 | 모듈화, 하이퍼파라미터 튜닝, Streamlit UI 구현             |      |
-| 2   | 문지영 | 앙상블 전략·Feature Engineering, Streamlit UI 구현     |      |
+| 2   | 문지영 | 앙상블 전략, Feature Engineering, Streamlit UI 구현     |      |
 | 3   | 신병탁 | CV 전략 확립·모델 실험, Streamlit UI 구현               |      |
 | 4   | 이명준 | 앙상블 전략·모델 실험                                   |      |
 | 5   | 손현우 | Feature Engineering, Streamlit UI 구현              |      |
