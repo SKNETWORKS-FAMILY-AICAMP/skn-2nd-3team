@@ -180,7 +180,7 @@ def run(
     # 7️⃣ 모델 저장
     if is_save:
         print(f"\n7️⃣ 모델 저장...")
-        save_dir = 'results/Final_Model/experiments/feature_selection'
+        save_dir = 'results/Final_Model'
         os.makedirs(save_dir, exist_ok=True)
         model_path = os.path.join(save_dir, f'Exclude_Features_selection_00_{ensemble_strategy}_model.joblib')
         joblib.dump(final_model, model_path)

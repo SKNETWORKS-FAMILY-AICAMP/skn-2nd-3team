@@ -6,17 +6,12 @@ from utils import load_data, load_model, predict_churn
 
 
 def show_message_center(): 
-    """
-    고객 메시지 발송 센터
-    """
+
     st.markdown("## 📱 고객 메시지 발송 센터")
     
-    # Initialize session state
     if 'sent_messages' not in st.session_state:
         st.session_state.sent_messages = []
     
-    # 이탈 위험 고객만 필터링: Dashboard에서 예측된 결과(df_result)를 사용
-    # 👈 (2) Session State 확인 로직으로 변경
     if 'df_result' in st.session_state and '이탈 위험' in st.session_state.df_result.columns:
         df_to_use = st.session_state.df_result
         at_risk_df = df_to_use[df_to_use['이탈 위험'] == True].copy()
@@ -24,18 +19,14 @@ def show_message_center():
         st.warning("⚠️ 먼저 Dashboard에서 '이탈 위험 예측'을 실행해주세요!")
         return
     
-    # 3. 이탈 위험 고객이 없는 경우 처리
     if len(at_risk_df) == 0:
         st.info("🎉 현재 이탈 위험 고객이 없습니다!")
         return
     
-    # (나머지 코드: 통계 표시, 탭 구성, 함수 호출 등)
-    # 통계 표시
     col1, col2, col3 = st.columns(3)
     with col1:
         st.metric("이탈 위험 고객", f"{len(at_risk_df):,}명")
     with col2:
-        # 이탈 확률 컬럼이 없는 경우 대비하여 try-except 또는 조건문 추가 권장
         high_risk = len(at_risk_df[at_risk_df['이탈 확률'] >= 0.7])
         st.metric("고위험 고객 (70%+)", f"{high_risk:,}명", delta="긴급", delta_color="inverse")
     with col3:
@@ -43,7 +34,6 @@ def show_message_center():
     
     st.markdown("---")
     
-    # 탭 구성
     tab1, tab2, tab3 = st.tabs(["📤 메시지 발송", "📋 메시지 템플릿", "📊 발송 이력"])
     
     with tab1:
@@ -57,8 +47,7 @@ def show_message_center():
 
 
 def show_send_message_tab(at_risk_df: pd.DataFrame):
-    """메시지 발송 탭"""
-    st.markdown("### 1️⃣ 타겟 고객 선택")
+    st.markdown("### 타겟 고객 선택")
     
     col1, col2 = st.columns(2)
     
@@ -76,7 +65,6 @@ def show_send_message_tab(at_risk_df: pd.DataFrame):
             value=min(10, len(at_risk_df))
         )
     
-    # 위험 등급별 필터링
     if risk_level == "고위험 (70%+)":
         filtered_df = at_risk_df[at_risk_df['이탈 확률'] >= 0.7]
     elif risk_level == "중위험 (50-70%)":
@@ -86,12 +74,10 @@ def show_send_message_tab(at_risk_df: pd.DataFrame):
     else:
         filtered_df = at_risk_df
     
-    # 이탈 확률 높은 순으로 정렬
     filtered_df = filtered_df.sort_values('이탈 확률', ascending=False).head(customer_count)
     
     st.markdown(f"**선택된 고객: {len(filtered_df)}명**")
     
-    # 선택된 고객 미리보기
     with st.expander("👥 선택된 고객 목록 보기"):
         display_cols = ['회원 ID', '이탈 확률', '신용한도', '총 거래량', '총 거래 횟수']
         st.dataframe(
@@ -101,9 +87,8 @@ def show_send_message_tab(at_risk_df: pd.DataFrame):
         )
     
     st.markdown("---")
-    st.markdown("### 2️⃣ 메시지 작성")
+    st.markdown("### 메시지 작성")
     
-    # 메시지 템플릿 선택
     template_options = {
         "직접 작성": "",
         "VIP 특별 혜택": "🎁 [고객명]님, VIP 회원님만을 위한 특별 혜택을 준비했습니다! 이번 달 신용카드 사용 시 최대 30% 캐시백 혜택을 받으세요. 자세한 내용은 앱에서 확인하세요!",
@@ -121,7 +106,6 @@ def show_send_message_tab(at_risk_df: pd.DataFrame):
         help="[고객명]은 자동으로 고객 이름으로 치환됩니다."
     )
     
-    # 발송 예약
     col1, col2 = st.columns(2)
     with col1:
         send_now = st.checkbox("즉시 발송", value=True)
@@ -131,19 +115,16 @@ def show_send_message_tab(at_risk_df: pd.DataFrame):
     
     st.markdown("---")
     
-    # 발송 버튼
     if st.button("📤 메시지 발송", type="primary", use_container_width=True):
         if not message_text:
             st.error("메시지 내용을 입력해주세요!")
         else:
             with st.spinner("메시지 발송 중..."):
-                # 시뮬레이션
                 progress_bar = st.progress(0)
                 for i in range(len(filtered_df)):
-                    time.sleep(0.05)  # 발송 시뮬레이션
+                    time.sleep(0.05)  
                     progress_bar.progress((i + 1) / len(filtered_df))
                 
-                # 발송 기록 저장
                 send_time = datetime.now() if send_now else datetime.combine(
                     datetime.now().date(), scheduled_time
                 )
@@ -157,7 +138,7 @@ def show_send_message_tab(at_risk_df: pd.DataFrame):
                         'status': '발송 완료' if send_now else '예약됨'
                     })
                 
-                st.success(f"✅ {len(filtered_df)}명의 고객에게 메시지가 {'발송' if send_now else '예약'}되었습니다!")
+                st.success(f" {len(filtered_df)}명의 고객에게 메시지가 {'발송' if send_now else '예약'}되었습니다!")
 
 
 def show_template_tab():
@@ -204,17 +185,14 @@ def show_template_tab():
 
 
 def show_history_tab():
-    """발송 이력 탭"""
     st.markdown("### 📊 메시지 발송 이력")
     
     if len(st.session_state.sent_messages) == 0:
         st.info("아직 발송된 메시지가 없습니다.")
         return
     
-    # 발송 이력 데이터프레임 생성
     history_df = pd.DataFrame(st.session_state.sent_messages)
     
-    # 통계
     col1, col2, col3, col4 = st.columns(4)
     with col1:
         st.metric("총 발송 건수", f"{len(history_df):,}건")
@@ -225,13 +203,11 @@ def show_history_tab():
         scheduled = len(history_df[history_df['status'] == '예약됨'])
         st.metric("예약됨", f"{scheduled:,}건")
     with col4:
-        # 시뮬레이션: 반응률 (실제로는 고객 반응 데이터 필요)
         response_rate = 23  # 예시
         st.metric("평균 반응률", f"{response_rate}%")
     
     st.markdown("---")
     
-    # 발송 이력 테이블
     display_df = history_df.copy()
     display_df['sent_time'] = display_df['sent_time'].dt.strftime('%Y-%m-%d %H:%M')
     display_df['risk_level'] = display_df['risk_level'].apply(lambda x: f"{x:.1%}")
@@ -249,7 +225,6 @@ def show_history_tab():
         }
     )
     
-    # 이력 초기화 버튼
     if st.button("🗑️ 발송 이력 초기화", type="secondary"):
         st.session_state.sent_messages = []
         st.rerun()

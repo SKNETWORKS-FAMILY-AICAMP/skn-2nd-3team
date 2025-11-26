@@ -7,14 +7,6 @@ import matplotlib.pyplot as plt
 from xgboost import XGBClassifier
 import os
 
-
-import streamlit as st
-import pandas as pd
-import numpy as np
-import plotly.graph_objects as go
-from xgboost import XGBClassifier
-import os
-
 if "idx" not in st.session_state:
     st.session_state.idx = 0
 
@@ -22,15 +14,10 @@ if "last_new_inputs" not in st.session_state:
     st.session_state.last_new_inputs = None
 
 def stable_input(key, default):
-    """입력값 유지하여 재랜더링 깜빡임 방지"""
     if key not in st.session_state:
         st.session_state[key] = default
     return st.session_state[key]
 
-
-# =====================================================
-# 1) 데이터 로드 + Soft Feature Engineering
-# =====================================================
 @st.cache_data
 def load_data():
     current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -42,7 +29,6 @@ def load_data():
         "Attrited Customer": 1
     })
 
-    # Soft Feature Engineering
     df["Activity_Index"] = np.log1p(df["Total_Trans_Amt"] * df["Total_Trans_Ct"])
     df["Avg_Transaction_Amount"] = np.log1p(df["Total_Trans_Amt"] / (df["Total_Trans_Ct"] + 1))
     df["Risk_Score"] = (
@@ -54,9 +40,6 @@ def load_data():
     return df
 
 
-# =====================================================
-# 2) 모델 학습 (Soft Model)
-# =====================================================
 @st.cache_resource
 def train_soft_model(df):
     X = df[[
@@ -89,17 +72,9 @@ def train_soft_model(df):
     model.fit(X, y)
     return model, X.columns
 
-
-# =====================================================
-# 3) 확률 보정 함수
-# =====================================================
 def calibrated_prediction(raw_prob):
     return 0.15 + (raw_prob * 0.7)
 
-
-# =====================================================
-# 4) 게이지 그래프
-# =====================================================
 def churn_gauge(prob):
     fig = go.Figure(go.Indicator(
         mode="gauge+number",
@@ -117,10 +92,6 @@ def churn_gauge(prob):
     ))
     return fig
 
-
-# =====================================================
-# 5) 피드백 생성 함수
-# =====================================================
 def generate_feedback(row, prob):
     fb = []
 
@@ -131,7 +102,6 @@ def generate_feedback(row, prob):
     else:
         fb.append("이 고객은 비교적 안정적인 상태입니다.")
 
-    # 행동 지표 기반 피드백
     if row["Avg_Utilization_Ratio"] > 0.6:
         fb.append("· 신용 사용률이 높아 재정적 스트레스를 느낄 수 있습니다.")
     if row["Months_Inactive_12_mon"] > 3:
@@ -145,10 +115,6 @@ def generate_feedback(row, prob):
 
     return fb
 
-
-# =====================================================
-# 6) 액션 플랜 생성 함수
-# =====================================================
 def generate_action_plan(prob):
     act = []
 
@@ -168,27 +134,17 @@ def generate_action_plan(prob):
 
     return act
 
-
-# =====================================================
-# 7) Streamlit UI (통합 버전)
-# =====================================================
 st.set_page_config(page_title="고객 이탈 예측 통합 대시보드", layout="wide")
 st.title("🔎 고객 이탈 예측 통합 대시보드 (기존 + 신규 고객)")
 
 df = load_data()
 model, feature_cols = train_soft_model(df)
 
-# -----------------------------------------------------
-# 분석 유형 선택
-# -----------------------------------------------------
 mode = st.radio(
     "분석할 고객 유형 선택:",
     ("👥 기존 고객 분석", "🆕 신규 고객 분석")
 )
 
-# -----------------------------------------------------
-# 기존 고객 분석
-# -----------------------------------------------------
 if mode == "👥 기존 고객 분석":
 
     idx = st.number_input(
@@ -205,7 +161,6 @@ if mode == "👥 기존 고객 분석":
 
     st.plotly_chart(churn_gauge(prob), use_container_width=True)
 
-    # 위험도 표시
     if prob > 0.7:
         st.error(f"⚠ 고위험 고객 ({prob*100:.1f}%)")
     elif prob > 0.4:
@@ -213,28 +168,20 @@ if mode == "👥 기존 고객 분석":
     else:
         st.success(f"✔ 낮은 위험 고객 ({prob*100:.1f}%)")
 
-    # 피드백
     st.markdown("### 📝 고객 맞춤 피드백")
     for fb in generate_feedback(row, prob):
         st.write(f"- {fb}")
 
-    # 전략
     st.markdown("### 🎯 고객 이탈 방지 전략")
     for ac in generate_action_plan(prob):
         st.write(f"- {ac}")
 
-
-# -----------------------------------------------------
-# 신규 고객 분석
-# -----------------------------------------------------
 else:
-
     st.markdown("### 🆕 신규 고객 정보 입력")
 
     col1, col2 = st.columns(2)
     with col1:
 
-        # 신규 입력값 깜빡임 방지 + 기본값 지정
         if "age" not in st.session_state:
             st.session_state.age = 35
 
@@ -251,7 +198,6 @@ else:
         contact = st.number_input("문의 횟수", 0, 20, 1)
         ct_chg = st.number_input("거래 변화율", 0.0, 3.0, 1.0)
 
-    # 신규 고객 Feature Engineering
     Aindex = np.log1p(trans_amt * trans_ct)
     Aavg = np.log1p(trans_amt / (trans_ct + 1))
     Rscore = (util * 0.4) + (np.log1p(revolve) * 0.6)
@@ -275,7 +221,6 @@ else:
         else:
             st.success(f"✔ 낮은 위험 신규 고객 ({prob_new*100:.1f}%)")
 
-        # 신규 고객 피드백
         new_row = {
             "Avg_Utilization_Ratio": util,
             "Months_Inactive_12_mon": inactive,
@@ -288,17 +233,9 @@ else:
         for fb in generate_feedback(new_row, prob_new):
             st.write(f"- {fb}")
 
-        # 전략
         st.markdown("### 🎯 신규 고객 액션 플랜")
         for ac in generate_action_plan(prob_new):
             st.write(f"- {ac}")
-
-# =====================================================
-# 🔧 화면 깜빡임 최소화 패치
-# =====================================================
-
-# Streamlit은 입력값 변화마다 전체 페이지를 rerun 하므로
-# session_state를 활용하여 rerun 횟수 최소화
 
 if "last_idx" not in st.session_state:
     st.session_state.last_idx = None
@@ -307,7 +244,6 @@ if "last_new_inputs" not in st.session_state:
     st.session_state.last_new_inputs = None
 
 def stable_input(key, default):
-    """입력값이 변해도 UI 전체가 깜빡이지 않도록 안정적으로 저장"""
     if key not in st.session_state:
         st.session_state[key] = default
     return st.session_state[key]
