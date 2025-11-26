@@ -5,7 +5,7 @@ import sys
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(PROJECT_ROOT)
-csv_file_path = sys.path[-1] + r"/data/BankChurners.csv"
+csv_file_path = sys.path[-1] + r"/data/raw/BankChurners.csv"
 
 
 def load_data(csv_file_path = csv_file_path):
