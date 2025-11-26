@@ -42,10 +42,6 @@ var/
 .DS_Store
 **/.DS_Store
 
-# Data files
-data/raw/
-data/processed/
-
 # Logs
 *.log
 
