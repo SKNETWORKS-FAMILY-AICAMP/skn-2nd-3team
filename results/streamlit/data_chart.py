@@ -15,6 +15,19 @@ import plotly.graph_objects as go
 from xgboost import XGBClassifier
 import os
 
+if "idx" not in st.session_state:
+    st.session_state.idx = 0
+
+if "last_new_inputs" not in st.session_state:
+    st.session_state.last_new_inputs = None
+
+def stable_input(key, default):
+    """입력값 유지하여 재랜더링 깜빡임 방지"""
+    if key not in st.session_state:
+        st.session_state[key] = default
+    return st.session_state[key]
+
+
 # =====================================================
 # 1) 데이터 로드 + Soft Feature Engineering
 # =====================================================
@@ -179,9 +192,10 @@ mode = st.radio(
 if mode == "👥 기존 고객 분석":
 
     idx = st.number_input(
-        "기존 고객 Row 선택 (0 ~ {}):".format(len(df)-1),
-        min_value=0, max_value=len(df)-1, value=0
-    )
+    "기존 고객 Row 선택 (0 ~ {}):".format(len(df)-1),
+    min_value=0, max_value=len(df)-1,
+    key="idx"
+)
 
     row = df.iloc[idx]
     model_input = row[feature_cols].values.reshape(1, -1)
@@ -219,12 +233,19 @@ else:
 
     col1, col2 = st.columns(2)
     with col1:
-        age = st.number_input("나이", 18, 100, 35)
+
+        # 신규 입력값 깜빡임 방지 + 기본값 지정
+        if "age" not in st.session_state:
+            st.session_state.age = 35
+
+        age = st.number_input("나이", 18, 100, key="age")
+
         trans_amt = st.number_input("총 거래 금액", 0, 100000, 5000)
         trans_ct = st.number_input("총 거래 횟수", 0, 200, 50)
         util = st.number_input("평균 신용 사용률", 0.0, 1.0, 0.3)
 
     with col2:
+
         revolve = st.number_input("리볼빙 잔액", 0, 100000, 1200)
         inactive = st.number_input("비활성 개월수", 0, 12, 1)
         contact = st.number_input("문의 횟수", 0, 20, 1)
@@ -271,3 +292,22 @@ else:
         st.markdown("### 🎯 신규 고객 액션 플랜")
         for ac in generate_action_plan(prob_new):
             st.write(f"- {ac}")
+
+# =====================================================
+# 🔧 화면 깜빡임 최소화 패치
+# =====================================================
+
+# Streamlit은 입력값 변화마다 전체 페이지를 rerun 하므로
+# session_state를 활용하여 rerun 횟수 최소화
+
+if "last_idx" not in st.session_state:
+    st.session_state.last_idx = None
+
+if "last_new_inputs" not in st.session_state:
+    st.session_state.last_new_inputs = None
+
+def stable_input(key, default):
+    """입력값이 변해도 UI 전체가 깜빡이지 않도록 안정적으로 저장"""
+    if key not in st.session_state:
+        st.session_state[key] = default
+    return st.session_state[key]
