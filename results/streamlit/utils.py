@@ -26,7 +26,7 @@ def load_data():
     # So we need to go up two levels: ../../data/raw/BankChurners.csv
     
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    DATA_PATH = os.path.join(current_dir, '../../data/raw/BankChurners.csv')
+    DATA_PATH = os.path.join(current_dir, '../../data/BankChurners.csv')
     
     if not os.path.exists(DATA_PATH):
         st.error(f"Data file not found at: {DATA_PATH}")
