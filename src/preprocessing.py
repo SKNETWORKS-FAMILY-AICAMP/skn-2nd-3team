@@ -29,7 +29,13 @@ def drop_column(df):
     return df
 
 def replace_nan_value(df, target_col='Attrition_Binary'):
-    """Nan 값을 대체합니다. (범주형 칼럼: 최빈값, 숫자형 칼럼: 평균값)"""
+    """
+    Nan 값을 대체합니다. (범주형 칼럼: 최빈값, 숫자형 칼럼: 평균값)
+    
+    Args:
+        df: 데이터프레임
+        target_col: 타겟 컬럼명 (추론 시에는 None 가능)
+    """
     categoriacal_cols = []
     numerical_cols = []
     df = df.copy()
@@ -41,7 +47,9 @@ def replace_nan_value(df, target_col='Attrition_Binary'):
     for col in df.select_dtypes(include=np.number).columns:
         if col not in numerical_cols:
             numerical_cols.append(col)
-        if col == target_col:
+        
+        # 타겟 컬럼이 있고, 현재 컬럼이 타겟인 경우
+        if target_col and col == target_col:
             # 타깃 컬럼은 원래 분포를 유지해야 하므로 결측만 최빈값으로 처리
             df[col] = df[col].fillna(df[col].mode()[0])
             continue
@@ -128,6 +136,76 @@ def feature_engineering_pipeline(df):
     df = add_feature_engineering(df)
     df = select_features(df)
 
+    return df
+
+
+def drop_inference_columns(df):
+    """
+    추론용 데이터 전처리: CLIENTNUM만 제거
+    (Attrition_Flag는 추론 시 존재하지 않음)
+    """
+    df = df.copy()
+    drop_cols = [col for col in ['CLIENTNUM'] if col in df.columns]
+    df = df.drop(columns=drop_cols)
+    return df
+
+
+def preprocess_for_inference(df):
+    """
+    추론용 전처리 파이프라인
+    학습 시와 동일한 로직 사용 (타겟 컬럼 생성 제외)
+    
+    Args:
+        df: 원본 데이터프레임 (Attrition_Flag 없음)
+    
+    Returns:
+        전처리된 데이터프레임
+    """
+    df = df.copy()
+    
+    # 1. CLIENTNUM 제거 (타겟 생성 없음)
+    df = drop_inference_columns(df)
+    
+    # 2. 결측치 처리 (타겟 없으므로 target_col=None)
+    df = replace_nan_value(df, target_col=None)
+    
+    # 3. Feature Engineering (학습 시와 동일)
+    # replace_nan_value에서 이미 get_dummies 적용됨
+    # 하지만 feature engineering은 원본 피처에 적용해야 하므로
+    # 순서를 조정해야 함!
+    
+    return df
+
+
+def preprocess_for_inference_raw(df):
+    """
+    추론용 전처리 파이프라인 (원시 버전)
+    Feature Engineering 전에 적용
+    
+    사용법:
+        df_raw = preprocess_for_inference_raw(df)
+        df_engineered = add_feature_engineering(df_raw)
+        # 이후 select_features는 학습 시 선택된 피처로만 필터링
+    """
+    df = df.copy()
+    
+    # 1. CLIENTNUM 제거
+    drop_cols = [col for col in ['CLIENTNUM'] if col in df.columns]
+    df = df.drop(columns=drop_cols)
+    
+    # 2. 결측치 처리 (인코딩 전)
+    # 범주형
+    for col in df.select_dtypes(include='object').columns:
+        if df[col].isnull().any():
+            df[col] = df[col].fillna(df[col].mode()[0])
+    
+    # 숫자형 (0을 평균으로)
+    for col in df.select_dtypes(include=np.number).columns:
+        if df[col].isnull().any() or (df[col] == 0).any():
+            mean_val = df.loc[df[col] != 0, col].mean()
+            df[col] = df[col].replace(0, np.nan)
+            df[col] = df[col].fillna(mean_val)
+    
     return df
 
 import pandas as pd
