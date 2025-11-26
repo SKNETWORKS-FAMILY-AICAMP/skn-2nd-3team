@@ -1,32 +1,19 @@
+from src.preprocessing import preprocess_pipeline, feature_engineering_pipeline
 import pandas as pd
 import streamlit as st
 import os
 import sys
 
-# Add project root to sys.path
 current_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.abspath(os.path.join(current_dir, '../../'))
 if project_root not in sys.path:
     sys.path.append(project_root)
 
-from src.preprocessing import preprocess_pipeline, feature_engineering_pipeline
 
 @st.cache_data
 def load_data():
-    """
-    Loads the BankChurners data and removes specific columns.
-    Columns to remove (1-based index from user request):
-    - 2: Attrition_Flag
-    - 22: Naive_Bayes_..._1
-    - 23: Naive_Bayes_..._2
-    """
-    # Construct absolute path to data
-    # The file is in results/streamlit/utils.py
-    # Data is in data/raw/BankChurners.csv
-    # So we need to go up two levels: ../../data/raw/BankChurners.csv
-    
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    DATA_PATH = os.path.join(current_dir, '../../data/BankChurners.csv')
+    DATA_PATH = os.path.join(current_dir, '../../data/raw/BankChurners.csv')
     
     if not os.path.exists(DATA_PATH):
         st.error(f"Data file not found at: {DATA_PATH}")
@@ -34,13 +21,7 @@ def load_data():
 
     df = pd.read_csv(DATA_PATH)
 
-    # Reset CLIENTNUM to start from 1
     df['CLIENTNUM'] = range(1, len(df) + 1)
-    
-    # Columns to drop
-    # 2 -> Attrition_Flag
-    # 22 -> Naive_Bayes_Classifier_Attrition_Flag_Card_Category_Contacts_Count_12_mon_Dependent_count_Education_Level_Months_Inactive_12_mon_1
-    # 23 -> Naive_Bayes_Classifier_Attrition_Flag_Card_Category_Contacts_Count_12_mon_Dependent_count_Education_Level_Months_Inactive_12_mon_2
     
     cols_to_drop = [
         'Attrition_Flag',
@@ -48,11 +29,9 @@ def load_data():
         'Naive_Bayes_Classifier_Attrition_Flag_Card_Category_Contacts_Count_12_mon_Dependent_count_Education_Level_Months_Inactive_12_mon_2'
     ]
     
-    # Drop existing columns only
     existing_cols_to_drop = [col for col in cols_to_drop if col in df.columns]
     df = df.drop(columns=existing_cols_to_drop)
     
-    # Rename columns to Korean
     column_mapping = {
         "CLIENTNUM": "회원 ID",
         "Attrition_Flag": "이탈 여부",
@@ -85,9 +64,6 @@ def load_data():
 
 @st.cache_resource
 def load_model():
-    """
-    Loads the trained Logistic Regression model.
-    """
     current_dir = os.path.dirname(os.path.abspath(__file__))
     model_path = os.path.join(current_dir, '../../results/Final_Model/stacking_model.joblib')
     
@@ -98,7 +74,6 @@ def load_model():
     import joblib
     loaded_obj = joblib.load(model_path)
     
-    # dict로 저장된 경우 실제 모델 객체를 꺼내서 반환
     if isinstance(loaded_obj, dict):
         if 'model' in loaded_obj:
             return loaded_obj['model']
@@ -113,10 +88,6 @@ def load_model():
     return loaded_obj
 
 def preprocess_for_inference(df, model):
-    """
-    Preprocesses the dataframe for inference using the main pipeline.
-    """
-    # 1. Revert Korean column names to English
     korean_to_english = {
         "회원 ID": "CLIENTNUM",
         "이탈 여부": "Attrition_Flag",
@@ -143,65 +114,40 @@ def preprocess_for_inference(df, model):
     
     df_processed = df.rename(columns=korean_to_english)
     
-    # 2. Apply Preprocessing Pipeline (from src/preprocessing.py)
-    # This handles dropping columns and filling NaNs (and one-hot encoding)
     df_processed = preprocess_pipeline(df_processed)
     
-    # 3. Feature Alignment using model.feature_names_in_
     if hasattr(model, 'feature_names_in_'):
-        # Add missing columns with 0 values
         missing_cols = set(model.feature_names_in_) - set(df_processed.columns)
         for col in missing_cols:
             df_processed[col] = 0
         
-        # Drop extra columns
         extra_cols = set(df_processed.columns) - set(model.feature_names_in_)
         df_processed = df_processed.drop(columns=list(extra_cols))
         
-        # Reorder columns to match model's expected order
         df_processed = df_processed[model.feature_names_in_]
     
-    # Convert all column names to string type at the end to avoid mixed types (str and str_)
     df_processed.columns = df_processed.columns.astype(str)
     
     return df_processed
 
 def predict_churn(model, df):
-    """
-    Predicts churn probability and risk status.
-    Returns the original dataframe with new columns: '이탈 확률', '고객 등급'
-    """
-    df_out = df.copy() # 원본 데이터프레임 복사
+    df_out = df.copy() 
     
-    # Preprocess
     X = preprocess_for_inference(df, model)
     
-    # Convert to numpy array to avoid column name type issues
     X_array = X.values
     
-    # Predict
-    probs = model.predict_proba(X_array)[:, 1] # Probability of class 1 (Attrition)
+    probs = model.predict_proba(X_array)[:, 1] 
 
-    # Add probability to dataframe
     df_out['이탈 확률'] = probs
     
-    # 새로운 등급 분류 로직 적용 (classify_risk_level 함수 사용)
-    df_out['고객 등급'] = df_out['이탈 확률'].apply(classify_risk_level) # 등급 컬럼 추가
+    df_out['고객 등급'] = df_out['이탈 확률'].apply(classify_risk_level)
 
-    # dashboard.py에서 사용하는 '이탈 위험' 컬럼 추가 (Boolean)
     df_out['이탈 위험'] = df_out['고객 등급'].isin(['위험', '주의'])
     
     return df_out
-# utils.py 파일 내부에 추가
 
 def classify_risk_level(prob):
-    """
-    이탈 확률을 기준으로 고객 등급을 분류합니다.
-    - 위험: 이탈 확률 >= 0.8
-    - 주의: 0.6 <= 이탈 확률 < 0.8
-    - 안전: 0.4 <= 이탈 확률 < 0.6
-    - 일반: 이탈 확률 < 0.4
-    """
     if prob >= 0.8:
         return '위험'
     elif prob >= 0.6:
