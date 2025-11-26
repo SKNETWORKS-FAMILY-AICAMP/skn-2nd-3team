@@ -153,20 +153,42 @@ def preprocess_for_inference(df, model):
 def predict_churn(model, df):
     """
     Predicts churn probability and risk status.
-    Returns the original dataframe with new columns: '이탈 확률', '이탈 위험'
+    Returns the original dataframe with new columns: '이탈 확률', '고객 등급'
     """
-    df_out = df.copy()
+    df_out = df.copy() # 원본 데이터프레임 복사
     
     # Preprocess
     X = preprocess_for_inference(df, model)
     
-    # Handle potential attribute errors in ensemble models
-
     # Predict
     probs = model.predict_proba(X)[:, 1] # Probability of class 1 (Attrition)
 
-    # Add to dataframe
+    # Add probability to dataframe
     df_out['이탈 확률'] = probs
-    df_out['이탈 위험'] = probs > 0.8 # Threshold 0.8
+    
+    # 새로운 등급 분류 로직 적용 (classify_risk_level 함수 사용)
+    df_out['고객 등급'] = df_out['이탈 확률'].apply(classify_risk_level) # 등급 컬럼 추가
+
+    # '이탈 위험' 컬럼은 더 이상 필요 없으므로 제거하거나, 
+    # 만약 dashboard.py에서 Boolean 값이 필요하다면 '위험' 등급 여부로 대체 가능
+    # 예: df_out['이탈 위험'] = df_out['고객 등급'].isin(['위험', '주의'])
     
     return df_out
+# utils.py 파일 내부에 추가
+
+def classify_risk_level(prob):
+    """
+    이탈 확률을 기준으로 고객 등급을 분류합니다.
+    - 위험: 이탈 확률 >= 0.8
+    - 주의: 0.6 <= 이탈 확률 < 0.8
+    - 안전: 0.4 <= 이탈 확률 < 0.6
+    - 일반: 이탈 확률 < 0.4
+    """
+    if prob >= 0.8:
+        return '위험'
+    elif prob >= 0.6:
+        return '주의'
+    elif prob >= 0.4:
+        return '안전'
+    else:
+        return '일반'
