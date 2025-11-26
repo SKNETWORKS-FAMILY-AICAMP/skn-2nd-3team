@@ -170,3 +170,4 @@ def predict_churn(model, df):
     df_out['이탈 위험'] = probs > 0.8 # Threshold 0.8
     
     return df_out
+

@@ -1,6 +1,8 @@
 import streamlit as st
 import pandas as pd
 from utils import load_data, load_model, predict_churn
+from datetime import datetime, timedelta
+import time
 
 def show_dashboard(df: pd.DataFrame):
     """
@@ -14,7 +16,6 @@ def show_dashboard(df: pd.DataFrame):
         st.session_state.df_result = df
         
     # Inference Button
-    # Use type="primary" to distinguish from pagination buttons
     if st.button("🔍 이탈 위험 예측 (AI Inference)", type="primary"):
         with st.spinner("AI 모델이 고객 데이터를 분석 중입니다..."):
             model = load_model()
@@ -171,6 +172,8 @@ def show_dashboard(df: pd.DataFrame):
             if cols[-1].button("▶", disabled=(end_page == total_pages), key="next_page"):
                 st.session_state.current_page = min(total_pages, end_page + 1)
                 st.rerun()
+
+
 
 
 df = load_data()
