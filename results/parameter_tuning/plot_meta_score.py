@@ -6,8 +6,8 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 
-DEFAULT_INPUT = Path(__file__).with_name("n_trials_comparison copy.csv")
-DEFAULT_OUTPUT = Path(__file__).with_name("meta_score_by_n_trials.png")
+DEFAULT_INPUT = Path(__file__).parent.parent.parent / "data" / "processed" / "parameter_tuning" / "n_trials_comparison.csv"
+DEFAULT_OUTPUT = Path(__file__).parent / "figures" / "meta_score_by_n_trials.png"
 
 
 def load_data(csv_path: Path) -> pd.DataFrame:

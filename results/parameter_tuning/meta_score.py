@@ -1,4 +1,5 @@
 import pandas as pd
+from pathlib import Path
 
 
 # =========================
@@ -186,14 +187,16 @@ def save_results(df, output_file="n_trials_comparison.csv"):
 # =========================
 # best_feature_pipeline.csv 처리 함수
 # =========================
-def process_best_feature_pipeline(input_file="best_feature_pipeline.csv", output_file=None):
+def process_best_feature_pipeline(input_file=None, output_file=None):
     """
     best_feature_pipeline.csv 파일을 읽어서 f2와 meta_score를 계산하고 저장합니다.
     
     Args:
-        input_file: 입력 CSV 파일명 (기본값: "best_feature_pipeline.csv")
-        output_file: 출력 CSV 파일명 (None이면 input_file과 동일)
+        input_file: 입력 CSV 파일 경로 (None이면 기본 경로 사용)
+        output_file: 출력 CSV 파일 경로 (None이면 input_file과 동일)
     """
+    if input_file is None:
+        input_file = str(Path(__file__).parent / "best" / "best_feature_pipeline.csv")
     if output_file is None:
         output_file = input_file
     
@@ -235,14 +238,16 @@ def process_best_feature_pipeline(input_file="best_feature_pipeline.csv", output
 # =========================
 # 메인 함수
 # =========================
-def main(input_file="best_feature_pipeline.csv", output_file=None):
+def main(input_file=None, output_file=None):
     """
     메인 실행 함수
     
     Args:
-        input_file: 입력 CSV 파일명 (기본값: "n_trials_comparison.csv")
-        output_file: 출력 CSV 파일명 (None이면 input_file과 동일)
+        input_file: 입력 CSV 파일 경로 (None이면 기본 경로 사용)
+        output_file: 출력 CSV 파일 경로 (None이면 input_file과 동일)
     """
+    if input_file is None:
+        input_file = str(Path(__file__).parent / "best" / "best_feature_pipeline.csv")
     if output_file is None:
         output_file = input_file
     
@@ -264,7 +269,8 @@ def main(input_file="best_feature_pipeline.csv", output_file=None):
     # print(f"n_trials: {best_n_trials}")
     
     # 5. Ensemble별 최적 파라미터 추출 및 저장
-    get_best_parameters_by_ensemble(df, "best_n_trials_parameter.csv")
+    best_output_path = Path(__file__).parent / "best" / "best_n_trials_parameter.csv"
+    get_best_parameters_by_ensemble(df, str(best_output_path))
     
     # 6. 결과 저장
     save_results(df, output_file)
