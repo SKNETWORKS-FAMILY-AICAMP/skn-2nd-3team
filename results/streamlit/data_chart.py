@@ -34,7 +34,7 @@ def stable_input(key, default):
 @st.cache_data
 def load_data():
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    data_path = os.path.join(current_dir, '../../data/BankChurners.csv')
+    data_path = os.path.join(current_dir, '../../data/raw/BankChurners.csv')
     df = pd.read_csv(data_path)
 
     df["Attrition_binary"] = df["Attrition_Flag"].map({
