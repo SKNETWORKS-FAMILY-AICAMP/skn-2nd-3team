@@ -61,7 +61,7 @@ def show_dashboard(df: pd.DataFrame):
     }
 
     # Pagination Settings
-    PAGE_SIZE = 1000
+    PAGE_SIZE = 2000
     total_rows = len(df_display)
     total_pages = (total_rows - 1) // PAGE_SIZE + 1
 
@@ -149,11 +149,16 @@ def show_dashboard(df: pd.DataFrame):
             end_page = min(start_page + max_buttons - 1, total_pages)
             
             # Create columns for buttons
-            num_buttons = end_page - start_page + 1 + 2 # +2 for Prev/Next
+            num_buttons = end_page - start_page + 1 + 4 # +4 for First/Prev/Next/Last
             cols = st.columns(num_buttons)
             
+            # First Page Button
+            if cols[0].button("⏮", disabled=(current_page == 1), key="first_page"):
+                st.session_state.current_page = 1
+                st.rerun()
+            
             # Previous Button
-            if cols[0].button("◀", disabled=(start_page == 1), key="prev_page"):
+            if cols[1].button("◀", disabled=(start_page == 1), key="prev_page"):
                 st.session_state.current_page = max(1, start_page - 1)
                 st.rerun()
             
@@ -163,13 +168,18 @@ def show_dashboard(df: pd.DataFrame):
                 is_current = (page_num == current_page)
                 label = f"{page_num}" # Just number
                 
-                if cols[i+1].button(label, key=f"page_{page_num}", disabled=is_current):
+                if cols[i+2].button(label, key=f"page_{page_num}", disabled=is_current):
                     st.session_state.current_page = page_num
                     st.rerun()
             
             # Next Button
-            if cols[-1].button("▶", disabled=(end_page == total_pages), key="next_page"):
+            if cols[-2].button("▶", disabled=(end_page == total_pages), key="next_page"):
                 st.session_state.current_page = min(total_pages, end_page + 1)
+                st.rerun()
+            
+            # Last Page Button
+            if cols[-1].button("⏭", disabled=(current_page == total_pages), key="last_page"):
+                st.session_state.current_page = total_pages
                 st.rerun()
 
 

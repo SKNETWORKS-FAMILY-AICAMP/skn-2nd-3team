@@ -5,7 +5,7 @@
 | #   | 팀원   | 담당 업무                                            | 비고 |
 | --- | ------ | ---------------------------------------------------- | ---- |
 | 1   | 김준석 | 모듈화, 하이퍼파라미터 튜닝, Streamlit UI 구현             |      |
-| 2   | 문지영 | 앙상블 전략·Feature Engineering                      |      |
+| 2   | 문지영 | 앙상블 전략, Feature Engineering, Streamlit UI 구현     |      |
 | 3   | 신병탁 | CV 전략 확립·모델 실험, Streamlit UI 구현               |      |
 | 4   | 이명준 | 앙상블 전략·모델 실험                                   |      |
 | 5   | 손현우 | Feature Engineering, Streamlit UI 구현              |      |
@@ -92,11 +92,12 @@ skn-2nd-3team/
 ![basic_preprocess](./data/images/00_basic_preprocessing.png)
 
 ### 6-3. 모델 선택
-**동일한 CV 환경에서 여러 모델 비교 후 Top 3 선정**
+**동일한 BasePipeline, CV 환경에서 여러 모델 비교 후 Top 3 선정**
 
-- 베이스 파이프라인으로 다양한 모델 테스트 진행
-- **선정 모델**: `LGBM`, `XGBoost`, `RandomForest` → 앙상블 결정
+- **선정 모델**: `LogReg`, `DTree`, `LGBM`, `XGBoost`, `RandomForest` → 최종 `LGBM`, `XGBoost`, `RandomForest` 선택
 ![베이스모델평가](./data/images/01_BASEMODE_difference.png)
+이때에도 평가Metric 을 최대한 통일하려함.
+
 
 ### 6-4. 모듈화
 **전처리, FE, 앙상블 전략을 `.py` 파일로 구조화**
@@ -109,12 +110,13 @@ skn-2nd-3team/
 - **`tuner.py`**: Optuna, GridSearch, RandomSearch 구현
 
 ### 6-5. 체계적 실험
-**각 전략 조합을 실험하며 결과 추적 (Config + Seed 관리)**
+**각 전략 조합을 실험하며 결과 추적 (Seed 관리)**
 
 - 🔗 [Notion 실험 로그 보러가기](https://www.notion.so/2-2b6153f6ee1280e5bec5d62110449c73?source=copy_link)
 - **실험 파이프라인 순서**:
   `CV 전략` → `전처리` → `Feature Engineering` → `튜닝` → `앙상블 전략` 순으로 고정하며 최적화
 - **실험 환경**: Random Seed `42` 고정
+![optuna_Exp](./data/images/05_optuna_exp.png)
 
 ### 6-6. 최종 모델 확정
 **가장 안정적이고 높은 성능의 모델/앙상블 조합 도출**
@@ -131,9 +133,9 @@ skn-2nd-3team/
 
 ### 7‑1 제공 기능
 
-- **입력 폼** – 고객 기본·거래 정보를 입력받는 UI.
-- **예측 버튼** – 클릭 시 LightGBM 모델이 이탈 확률을 반환.
-- **리포트 페이지** – 예측 결과와 주요 피처 SHAP 해석을 시각적으로 표시.
+- **예측 버튼** – 현재 고객들의 이탈확률을 체크
+- **이탈률에 따라 맞춤형 메시지 발송 서비스** - 자동으로 회원의 정보에 맞는 메시지가 발송됨.
+- **회원별 피드백 추천 페이지** – 신용 사용률, 최근 거래 빈도, 거래횟수 등을 고려하여 더욱 디테일한 피드백 제공.
 
 ### 7‑2 기술 스택
 

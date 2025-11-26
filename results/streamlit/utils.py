@@ -89,14 +89,28 @@ def load_model():
     Loads the trained Logistic Regression model.
     """
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    model_path = os.path.join(current_dir, '../../results/Final_Model/final_model.joblib')
+    model_path = os.path.join(current_dir, '../../results/Final_Model/stacking_model.joblib')
     
     if not os.path.exists(model_path):
         st.error(f"Model file not found at: {model_path}")
         return None
         
     import joblib
-    return joblib.load(model_path)
+    loaded_obj = joblib.load(model_path)
+    
+    # dict로 저장된 경우 실제 모델 객체를 꺼내서 반환
+    if isinstance(loaded_obj, dict):
+        if 'model' in loaded_obj:
+            return loaded_obj['model']
+        elif 'final_model' in loaded_obj:
+            return loaded_obj['final_model']
+        elif 'best_fold_model' in loaded_obj:
+            return loaded_obj['best_fold_model']
+        else:
+            st.error(f"모델 dict에서 사용할 수 있는 키가 없습니다. 사용 가능한 키: {list(loaded_obj.keys())}")
+            return None
+    
+    return loaded_obj
 
 def preprocess_for_inference(df, model):
     """
@@ -125,8 +139,6 @@ def preprocess_for_inference(df, model):
         "총 거래 횟수": "Total_Trans_Ct",
         "거래 횟수 변화율": "Total_Ct_Chng_Q4_Q1",
         "평균 신용 사용률": "Avg_Utilization_Ratio",
-        "예측 모델 1": "Naive_Bayes_Classifier_Attrition_Flag_Card_Category_Contacts_Count_12_mon_Dependent_count_Education_Level_Months_Inactive_12_mon_1",
-        "예측 모델 2": "Naive_Bayes_Classifier_Attrition_Flag_Card_Category_Contacts_Count_12_mon_Dependent_count_Education_Level_Months_Inactive_12_mon_2"
     }
     
     df_processed = df.rename(columns=korean_to_english)
@@ -135,18 +147,22 @@ def preprocess_for_inference(df, model):
     # This handles dropping columns and filling NaNs (and one-hot encoding)
     df_processed = preprocess_pipeline(df_processed)
     
-    # 3. Apply Feature Engineering Pipeline (from src/preprocessing.py)
-    # This adds new features and selects features
-    df_processed = feature_engineering_pipeline(df_processed)
-    
-    # 4. Feature Alignment using model.feature_names_in_
+    # 3. Feature Alignment using model.feature_names_in_
     if hasattr(model, 'feature_names_in_'):
+        # Add missing columns with 0 values
+        missing_cols = set(model.feature_names_in_) - set(df_processed.columns)
+        for col in missing_cols:
+            df_processed[col] = 0
+        
         # Drop extra columns
         extra_cols = set(df_processed.columns) - set(model.feature_names_in_)
         df_processed = df_processed.drop(columns=list(extra_cols))
         
-        # Reorder columns
+        # Reorder columns to match model's expected order
         df_processed = df_processed[model.feature_names_in_]
+    
+    # Convert all column names to string type at the end to avoid mixed types (str and str_)
+    df_processed.columns = df_processed.columns.astype(str)
     
     return df_processed
 
@@ -160,8 +176,11 @@ def predict_churn(model, df):
     # Preprocess
     X = preprocess_for_inference(df, model)
     
+    # Convert to numpy array to avoid column name type issues
+    X_array = X.values
+    
     # Predict
-    probs = model.predict_proba(X)[:, 1] # Probability of class 1 (Attrition)
+    probs = model.predict_proba(X_array)[:, 1] # Probability of class 1 (Attrition)
 
     # Add probability to dataframe
     df_out['이탈 확률'] = probs
@@ -169,9 +188,8 @@ def predict_churn(model, df):
     # 새로운 등급 분류 로직 적용 (classify_risk_level 함수 사용)
     df_out['고객 등급'] = df_out['이탈 확률'].apply(classify_risk_level) # 등급 컬럼 추가
 
-    # '이탈 위험' 컬럼은 더 이상 필요 없으므로 제거하거나, 
-    # 만약 dashboard.py에서 Boolean 값이 필요하다면 '위험' 등급 여부로 대체 가능
-    # 예: df_out['이탈 위험'] = df_out['고객 등급'].isin(['위험', '주의'])
+    # dashboard.py에서 사용하는 '이탈 위험' 컬럼 추가 (Boolean)
+    df_out['이탈 위험'] = df_out['고객 등급'].isin(['위험', '주의'])
     
     return df_out
 # utils.py 파일 내부에 추가

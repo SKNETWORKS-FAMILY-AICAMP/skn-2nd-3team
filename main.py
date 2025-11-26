@@ -193,7 +193,7 @@ def run(
     return {
         'cv_results': cv_results,
         'summary': summary,
-        # 'final_model': final_model,
+        'final_model': final_model,
         'best_fold_model': models[np.argmax([r['f1'] for r in cv_results])]
     }
 

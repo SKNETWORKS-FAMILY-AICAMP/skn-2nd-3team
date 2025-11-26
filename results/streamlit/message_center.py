@@ -5,7 +5,7 @@ import time
 from utils import load_data, load_model, predict_churn
 
 
-def show_message_center(df: pd.DataFrame):
+def show_message_center(): 
     """
     고객 메시지 발송 센터
     """
@@ -15,22 +15,27 @@ def show_message_center(df: pd.DataFrame):
     if 'sent_messages' not in st.session_state:
         st.session_state.sent_messages = []
     
-    # 이탈 위험 고객만 필터링
-    if '이탈 위험' in df.columns:
-        at_risk_df = df[df['이탈 위험'] == True].copy()
+    # 이탈 위험 고객만 필터링: Dashboard에서 예측된 결과(df_result)를 사용
+    # 👈 (2) Session State 확인 로직으로 변경
+    if 'df_result' in st.session_state and '이탈 위험' in st.session_state.df_result.columns:
+        df_to_use = st.session_state.df_result
+        at_risk_df = df_to_use[df_to_use['이탈 위험'] == True].copy()
     else:
         st.warning("⚠️ 먼저 Dashboard에서 '이탈 위험 예측'을 실행해주세요!")
         return
     
+    # 3. 이탈 위험 고객이 없는 경우 처리
     if len(at_risk_df) == 0:
         st.info("🎉 현재 이탈 위험 고객이 없습니다!")
         return
     
+    # (나머지 코드: 통계 표시, 탭 구성, 함수 호출 등)
     # 통계 표시
     col1, col2, col3 = st.columns(3)
     with col1:
         st.metric("이탈 위험 고객", f"{len(at_risk_df):,}명")
     with col2:
+        # 이탈 확률 컬럼이 없는 경우 대비하여 try-except 또는 조건문 추가 권장
         high_risk = len(at_risk_df[at_risk_df['이탈 확률'] >= 0.7])
         st.metric("고위험 고객 (70%+)", f"{high_risk:,}명", delta="긴급", delta_color="inverse")
     with col3:
@@ -88,7 +93,7 @@ def show_send_message_tab(at_risk_df: pd.DataFrame):
     
     # 선택된 고객 미리보기
     with st.expander("👥 선택된 고객 목록 보기"):
-        display_cols = ['CLIENTNUM', '이탈 확률', '신용한도', '총 거래량', '총 거래 횟수']
+        display_cols = ['회원 ID', '이탈 확률', '신용한도', '총 거래량', '총 거래 횟수']
         st.dataframe(
             filtered_df[display_cols],
             use_container_width=True,
@@ -145,7 +150,7 @@ def show_send_message_tab(at_risk_df: pd.DataFrame):
                 
                 for _, row in filtered_df.iterrows():
                     st.session_state.sent_messages.append({
-                        'customer_id': row['CLIENTNUM'],
+                        'customer_id': row['회원 ID'],
                         'risk_level': row['이탈 확률'],
                         'message': message_text,
                         'sent_time': send_time,
@@ -249,6 +254,4 @@ def show_history_tab():
         st.session_state.sent_messages = []
         st.rerun()
 
-df = load_data() # utils.py의 load_data 함수를 사용하여 데이터 로드
-if not df.empty:
-    show_message_center(df) # 정의된 메인 함수 호출
+show_message_center()
