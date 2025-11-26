@@ -69,6 +69,8 @@ skn-2nd-3team/
 |--------------------|------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------|
 | `BankChurners.csv` | Kaggle (Bank Customer Churn) | `CustomerID`, `Gender`, `Age`, `IncomeCategory`, `EducationLevel`, `CardCategory`, `MonthsOnBook`, `TotalTransactionCount`, `TotalTransactionAmount`, `Attrition_Flag` |      |
 
+![columns_to_korean](./data/images/04_columns_to_korean.png)
+
 ## 6️⃣ 개발 과정
 
 ### 6-1. EDA 및 전략 수립
