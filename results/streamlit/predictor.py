@@ -4,13 +4,6 @@ import numpy as np
 from utils import load_data
 
 def predict_customer(df: pd.DataFrame):
-    # 페이지 기본 설정
-    st.set_page_config(
-        page_title="신용카드 고객 이탈 예측시스템",
-        page_icon="💳",
-        layout="wide"
-    )
-
     # 제목 및 설명
     st.title("💳 신용카드 고객 이탈 예측")
     st.markdown("""

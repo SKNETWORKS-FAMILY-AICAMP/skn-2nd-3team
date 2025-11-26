@@ -5,6 +5,7 @@ import plotly.graph_objects as go
 import seaborn as sns
 import matplotlib.pyplot as plt
 from xgboost import XGBClassifier
+import os
 
 
 # =====================================================
@@ -12,7 +13,10 @@ from xgboost import XGBClassifier
 # =====================================================
 @st.cache_data
 def load_data():
-    df = pd.read_csv(r"C:\skn-2nd-3team\data\BankChurners.csv")
+    # 상대 경로로 데이터 파일 로드
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    data_path = os.path.join(current_dir, '../../data/BankChurners.csv')
+    df = pd.read_csv(data_path)
 
     df["Attrition_binary"] = df["Attrition_Flag"].map({
         "Existing Customer": 0,
@@ -101,7 +105,6 @@ def churn_gauge(prob):
 # =====================================================
 # 5) Streamlit UI
 # =====================================================
-st.set_page_config(page_title="고객 단일 이탈 예측", layout="centered")
 st.title("🔎 고객 단일 이탈 예측 대시보드 (Soft Prediction)")
 
 df = load_data()

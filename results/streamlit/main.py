@@ -21,8 +21,6 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="collapsed"
 )
-
-st.set_page_config(page_title="SKN 2기 3팀 - 고객 관리 시스템")
 home    = st.Page("./dashboard.py", title="대시보드",   icon="🏠")
 test_sample  = st.Page("./predictor.py",  title="고객이탈 예측",   icon="🚗")
 message_center = st.Page("./message_center.py", title="고객 관리 메세지", icon="⚙️")
