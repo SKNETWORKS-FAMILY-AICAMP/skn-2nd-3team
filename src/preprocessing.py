@@ -129,8 +129,8 @@ def feature_engineering_pipeline(df):
 	# Feature Engineering 파이프라인
 
     df = df.copy()
-    # df = add_feature_engineering(df)
-    df = select_features(df)
+    df = add_feature_engineering(df)
+    # df = select_features(df)
 
     return df
 

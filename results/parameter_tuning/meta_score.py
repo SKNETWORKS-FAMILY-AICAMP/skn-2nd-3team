@@ -61,18 +61,18 @@ def display_results(df):
     df_sorted = df.sort_values("meta_score", ascending=False)
     
     print("\n=== Top Models by MetaScore ===")
-    print(df_sorted[[
-        "ensemble_strategy",
-        "n_trials",
-        "accuracy",
-        "roc_auc",
-        "pr_auc",
-        "precision",
-        "recall",
-        "f1",
-        "f2",
-        "meta_score"
-    ]].head(10))
+    
+    # 출력할 컬럼 목록 (존재하는 것만 선택)
+    display_columns = ["ensemble_strategy", "n_trials"]
+    optional_columns = ["accuracy", "roc_auc", "pr_auc", "precision", "recall", "f1", "f2", "meta_score",
+                       "feature_selection", "feature_engineering"]
+    
+    # 존재하는 컬럼만 추가
+    for col in optional_columns:
+        if col in df_sorted.columns:
+            display_columns.append(col)
+    
+    print(df_sorted[display_columns].head(10))
     
     # Best model info
     best_row = df_sorted.iloc[0]
@@ -150,8 +150,18 @@ def get_best_parameters_by_ensemble(df, output_file="best_n_trials_parameter.csv
     print(f"파일명: {output_file}")
     print(f"총 {len(best_models)}개 ensemble strategy의 최적 모델이 저장되었습니다.")
     print("\n=== Ensemble별 최적 모델 정보 ===")
-    print(best_models[["ensemble_strategy", "n_trials", "accuracy", "roc_auc", "pr_auc", 
-                       "precision", "recall", "f1", "f2", "meta_score"]])
+    
+    # 출력할 컬럼 목록 (존재하는 것만 선택)
+    display_columns = ["ensemble_strategy", "n_trials"]
+    optional_columns = ["accuracy", "roc_auc", "pr_auc", "precision", "recall", "f1", "f2", "meta_score",
+                       "feature_selection", "feature_engineering"]
+    
+    # 존재하는 컬럼만 추가
+    for col in optional_columns:
+        if col in best_models.columns:
+            display_columns.append(col)
+    
+    print(best_models[display_columns])
     
     return best_models
 
@@ -174,9 +184,58 @@ def save_results(df, output_file="n_trials_comparison.csv"):
 
 
 # =========================
+# best_feature_pipeline.csv 처리 함수
+# =========================
+def process_best_feature_pipeline(input_file="best_feature_pipeline.csv", output_file=None):
+    """
+    best_feature_pipeline.csv 파일을 읽어서 f2와 meta_score를 계산하고 저장합니다.
+    
+    Args:
+        input_file: 입력 CSV 파일명 (기본값: "best_feature_pipeline.csv")
+        output_file: 출력 CSV 파일명 (None이면 input_file과 동일)
+    """
+    if output_file is None:
+        output_file = input_file
+    
+    # 1. CSV 파일 로드
+    print(f"=== CSV 파일 로드 중: {input_file} ===")
+    df = pd.read_csv(input_file)
+    print(f"총 {len(df)}개 행을 로드했습니다.")
+    
+    # 2. 필수 컬럼 확인
+    required_columns = ["precision", "recall", "roc_auc", "pr_auc"]
+    missing_columns = [col for col in required_columns if col not in df.columns]
+    if missing_columns:
+        raise ValueError(f"필수 컬럼이 없습니다: {missing_columns}")
+    
+    # 3. 점수 계산 (f2, meta_score)
+    print("\n=== 점수 계산 중 (f2, meta_score) ===")
+    df = calculate_scores(df)
+    
+    # 4. 결과 출력
+    print("\n=== 계산된 결과 ===")
+    print(df[["ensemble_strategy", "feature_selection", "feature_engineering", 
+              "roc_auc", "pr_auc", "precision", "recall", "f1", "f2", "meta_score"]])
+    
+    # 5. 최고 모델 정보
+    best_row = df.loc[df["meta_score"].idxmax()]
+    print("\n=== 최고 MetaScore 모델 ===")
+    print(best_row[["ensemble_strategy", "feature_selection", "feature_engineering",
+                    "roc_auc", "pr_auc", "precision", "recall", "f1", "f2", "meta_score"]])
+    
+    # 6. 결과 저장
+    df.to_csv(output_file, index=False)
+    print(f"\n=== 결과 저장 완료 ===")
+    print(f"파일명: {output_file}")
+    print(f"총 {len(df)}개 행이 저장되었습니다.")
+    
+    return df
+
+
+# =========================
 # 메인 함수
 # =========================
-def main(input_file="n_trials_comparison.csv", output_file=None):
+def main(input_file="best_feature_pipeline.csv", output_file=None):
     """
     메인 실행 함수
     
@@ -196,13 +255,13 @@ def main(input_file="n_trials_comparison.csv", output_file=None):
     print("\n=== 점수 계산 중 (f2, meta_score) ===")
     df = calculate_scores(df)
     
-    # 3. 결과 출력
-    display_results(df)
+    # # 3. 결과 출력
+    # display_results(df)
     
-    # 4. 최고 모델의 n_trials 확인
-    best_n_trials = get_best_n_trials(df)
-    print(f"\n=== 최고 MetaScore 모델의 n_trials ===")
-    print(f"n_trials: {best_n_trials}")
+    # # 4. 최고 모델의 n_trials 확인
+    # best_n_trials = get_best_n_trials(df)
+    # print(f"\n=== 최고 MetaScore 모델의 n_trials ===")
+    # print(f"n_trials: {best_n_trials}")
     
     # 5. Ensemble별 최적 파라미터 추출 및 저장
     get_best_parameters_by_ensemble(df, "best_n_trials_parameter.csv")
