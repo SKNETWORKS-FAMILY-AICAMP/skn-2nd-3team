@@ -5,7 +5,7 @@ import sys
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(PROJECT_ROOT)
-csv_file_path = sys.path[-1] + r"/data/raw/BankChurners.csv"
+csv_file_path = sys.path[-1] + r"/data/BankChurners.csv"
 
 
 def load_data(csv_file_path = csv_file_path):
@@ -86,10 +86,12 @@ def add_feature_engineering(df: pd.DataFrame) -> pd.DataFrame:
 
     # 4) Utilization 기반 위험 구간화
     df["Utilization_Risk_Level"] = pd.cut(
-        df["Avg_Utilization_Ratio"],
+        df["Avg_Utilization_Ratio"].fillna(0),
         bins=[0, 0.3, 0.6, 1.0],
-        labels=[0, 1, 2]
+        labels=[0, 1, 2],
+        include_lowest=True
     ).astype(int)
+
     return df 
 
 def select_features(df: pd.DataFrame) -> pd.DataFrame:
@@ -115,11 +117,13 @@ def select_features(df: pd.DataFrame) -> pd.DataFrame:
     else:
         low_corr_cols = []
     drop_cols = list(set(low_variance_cols + low_corr_cols))
+    print(f"drop_cols: {drop_cols}")
     df = df.drop(columns=drop_cols, errors='ignore')
+
 
     return df
 
-def preprocess_pipeline(df, enginnered_feature_selection=True):
+def preprocess_pipeline(df):
     # 전처리 파이프라인
     # 1. 필요없는 칼럼 드랍
     # 2. nan값 채우기
@@ -134,7 +138,7 @@ def feature_engineering_pipeline(df):
 
     df = df.copy()
     df = add_feature_engineering(df)
-    df = select_features(df)
+    # df = select_features(df)
 
     return df
 

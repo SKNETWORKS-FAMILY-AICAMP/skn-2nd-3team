@@ -43,6 +43,7 @@ def run(
         df = drop_column(df)
     
     if is_feature_engineering:
+        print("2Feature Engineering...")
         df = feature_engineering_pipeline(df)
     
     print(f"   ✅ 전처리 완료: {df.shape}")
@@ -64,7 +65,7 @@ def run(
                 X_full, y_full,
                 cv_strategy=cv_strategy,
                 tuning_strategy=tuning_strategy,
-                n_trials=20,  # 필요시 조정
+                n_trials=240,  # 필요시 조정
                 return_params=True
             )
         elif ensemble_strategy == 'voting':
@@ -72,7 +73,7 @@ def run(
                 X_full, y_full,
                 cv_strategy=cv_strategy,
                 tuning_strategy=tuning_strategy,
-                n_trials=50,
+                n_trials=120,
                 return_params=True
             )
         
@@ -181,7 +182,7 @@ def run(
         print(f"\n7️⃣ 모델 저장...")
         save_dir = 'results/Final_Model'
         os.makedirs(save_dir, exist_ok=True)
-        model_path = os.path.join(save_dir, f'{ensemble_strategy}_model.joblib')
+        model_path = os.path.join(save_dir, f'Exclude_Features_selection_00_{ensemble_strategy}_model.joblib')
         joblib.dump(final_model, model_path)
         print(f"   ✅ 저장 완료: {model_path}")
     
@@ -206,9 +207,9 @@ if __name__ == '__main__':
     results = run(
         df=df,
         is_preprocess=True,
-        is_feature_engineering=True,
+        is_feature_engineering=False,
         cv_strategy='stratified_kfold',  # 'stratified_kfold', 'kfold', None
         tuning_strategy='optuna',  # None, 'optuna', 'grid_search', 'random_search'
-        ensemble_strategy='voting',  # 'stacking', 'voting', 'logistic'
-        is_save=False
+        ensemble_strategy='stacking',  # 'stacking', 'voting', 'logistic'
+        is_save=True
     )

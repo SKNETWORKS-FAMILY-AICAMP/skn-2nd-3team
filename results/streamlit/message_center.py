@@ -4,29 +4,6 @@ from datetime import datetime, timedelta
 import time
 from utils import load_data, load_model, predict_churn
 
-import streamlit as st
-import pandas as pd
-from datetime import datetime, timedelta
-import time
-from utils import load_data, load_model, predict_churn
-
-
-def classify_risk_level(prob):
-    """
-    이탈 확률을 기준으로 고객 등급을 분류합니다.
-    (이 함수는 임시로 message_center.py에 추가하며,
-     실제로는 utils.py의 predict_churn에서 처리하는 것이 좋습니다.)
-    """
-    if prob >= 0.8:
-        return '위험'
-    elif prob >= 0.6:
-        return '주의'
-    elif prob >= 0.4:
-        return '안전'
-    else:
-        # 이탈 확률이 낮은 고객 (타겟팅 제외)
-        return '일반'
-
 
 def show_message_center(df: pd.DataFrame):
     """
@@ -38,33 +15,25 @@ def show_message_center(df: pd.DataFrame):
     if 'sent_messages' not in st.session_state:
         st.session_state.sent_messages = []
     
-    # 이탈 확률 예측 결과 확인 및 등급 분류 (임시 로직)
-    # df에 '이탈 확률' 컬럼이 있어야 합니다.
-    if '이탈 확률' in df.columns:
-        # 1. 등급 분류 컬럼 추가
-        df['고객 등급'] = df['이탈 확률'].apply(classify_risk_level)
-        
-        # 2. 메시지 발송 대상 고객 (일반 고객 제외)
-        at_risk_df = df[df['고객 등급'] != '일반'].copy()
+    # 이탈 위험 고객만 필터링
+    if '이탈 위험' in df.columns:
+        at_risk_df = df[df['이탈 위험'] == True].copy()
     else:
         st.warning("⚠️ 먼저 Dashboard에서 '이탈 위험 예측'을 실행해주세요!")
         return
     
     if len(at_risk_df) == 0:
-        st.info("🎉 현재 메시지 발송 대상 고객이 없습니다! (모든 고객이 '일반' 등급)")
+        st.info("🎉 현재 이탈 위험 고객이 없습니다!")
         return
     
     # 통계 표시
-    col1, col2, col3, col4 = st.columns(4)
+    col1, col2, col3 = st.columns(3)
     with col1:
-        st.metric("발송 대상 고객", f"{len(at_risk_df):,}명")
+        st.metric("이탈 위험 고객", f"{len(at_risk_df):,}명")
     with col2:
-        danger_count = len(at_risk_df[at_risk_df['고객 등급'] == '위험'])
-        st.metric("🔥 위험 등급", f"{danger_count:,}명", delta="긴급", delta_color="inverse")
+        high_risk = len(at_risk_df[at_risk_df['이탈 확률'] >= 0.7])
+        st.metric("고위험 고객 (70%+)", f"{high_risk:,}명", delta="긴급", delta_color="inverse")
     with col3:
-        caution_count = len(at_risk_df[at_risk_df['고객 등급'] == '주의'])
-        st.metric("⚠️ 주의 등급", f"{caution_count:,}명", delta="관심 필요")
-    with col4:
         st.metric("발송 완료", f"{len(st.session_state.sent_messages):,}건")
     
     st.markdown("---")
@@ -88,13 +57,10 @@ def show_send_message_tab(at_risk_df: pd.DataFrame):
     
     col1, col2 = st.columns(2)
     
-    # '일반'은 발송 대상에서 제외되었으므로, 필터링 옵션은 '전체', '위험', '주의', '안전'만 포함
-    # '일반' 등급 고객을 포함하고 싶다면, at_risk_df 대신 원본 df를 사용해야 합니다.
-    # 여기서는 '위험', '주의', '안전' 등급 고객만을 대상으로 합니다.
     with col1:
         risk_level = st.selectbox(
-            "고객 등급",
-            ["전체", "위험", "주의", "안전"]
+            "위험 등급",
+            ["전체", "고위험 (70%+)", "중위험 (50-70%)", "저위험 (50% 미만)"]
         )
     
     with col2:
@@ -106,13 +72,13 @@ def show_send_message_tab(at_risk_df: pd.DataFrame):
         )
     
     # 위험 등급별 필터링
-    if risk_level == "위험":
-        filtered_df = at_risk_df[at_risk_df['고객 등급'] == '위험']
-    elif risk_level == "주의":
-        filtered_df = at_risk_df[at_risk_df['고객 등급'] == '주의']
-    elif risk_level == "안전":
-        filtered_df = at_risk_df[at_risk_df['고객 등급'] == '안전']
-    else: # 전체
+    if risk_level == "고위험 (70%+)":
+        filtered_df = at_risk_df[at_risk_df['이탈 확률'] >= 0.7]
+    elif risk_level == "중위험 (50-70%)":
+        filtered_df = at_risk_df[(at_risk_df['이탈 확률'] >= 0.5) & (at_risk_df['이탈 확률'] < 0.7)]
+    elif risk_level == "저위험 (50% 미만)":
+        filtered_df = at_risk_df[at_risk_df['이탈 확률'] < 0.5]
+    else:
         filtered_df = at_risk_df
     
     # 이탈 확률 높은 순으로 정렬
@@ -122,8 +88,7 @@ def show_send_message_tab(at_risk_df: pd.DataFrame):
     
     # 선택된 고객 미리보기
     with st.expander("👥 선택된 고객 목록 보기"):
-        # '고객 등급' 컬럼 추가
-        display_cols = ['CLIENTNUM', '이탈 확률', '고객 등급', '신용한도', '총 거래량', '총 거래 횟수']
+        display_cols = ['CLIENTNUM', '이탈 확률', '신용한도', '총 거래량', '총 거래 횟수']
         st.dataframe(
             filtered_df[display_cols],
             use_container_width=True,
@@ -181,8 +146,7 @@ def show_send_message_tab(at_risk_df: pd.DataFrame):
                 for _, row in filtered_df.iterrows():
                     st.session_state.sent_messages.append({
                         'customer_id': row['CLIENTNUM'],
-                        'risk_prob': row['이탈 확률'], # 'risk_level' 대신 'risk_prob'로 저장 (이력 탭에서 등급 계산)
-                        'customer_grade': row['고객 등급'], # 새로 추가된 등급
+                        'risk_level': row['이탈 확률'],
                         'message': message_text,
                         'sent_time': send_time,
                         'status': '발송 완료' if send_now else '예약됨'
@@ -192,7 +156,7 @@ def show_send_message_tab(at_risk_df: pd.DataFrame):
 
 
 def show_template_tab():
-    """메시지 템플릿 관리 탭 (변경 없음)"""
+    """메시지 템플릿 관리 탭"""
     st.markdown("### 💬 메시지 템플릿 라이브러리")
     
     templates = [
@@ -265,17 +229,15 @@ def show_history_tab():
     # 발송 이력 테이블
     display_df = history_df.copy()
     display_df['sent_time'] = display_df['sent_time'].dt.strftime('%Y-%m-%d %H:%M')
-    # 이력에는 risk_prob이 저장되어 있으므로, '이탈 확률'과 '고객 등급'을 표시합니다.
-    display_df['이탈 확률'] = display_df['risk_prob'].apply(lambda x: f"{x:.1%}")
+    display_df['risk_level'] = display_df['risk_level'].apply(lambda x: f"{x:.1%}")
     
     st.dataframe(
-        display_df[['customer_id', '이탈 확률', 'customer_grade', 'sent_time', 'status', 'message']],
+        display_df[['customer_id', 'risk_level', 'sent_time', 'status', 'message']],
         use_container_width=True,
         hide_index=True,
         column_config={
             'customer_id': '고객 ID',
-            '이탈 확률': '이탈 확률',
-            'customer_grade': '고객 등급', # 'risk_level' 대신 'customer_grade'로 변경
+            'risk_level': '이탈 확률',
             'sent_time': '발송 시간',
             'status': '상태',
             'message': '메시지'

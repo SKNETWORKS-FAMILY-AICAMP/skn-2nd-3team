@@ -1,0 +1,2 @@
+ensemble_strategy,n_trials,feature_selection,feature_engineering,roc_auc,pr_auc,f1,recall,precision,f2,meta_score
+stacking,240,0,0,0.9924,0.9656,0.8770,0.9576,0.8091,0.9236935622317597,0.9500067811158799
